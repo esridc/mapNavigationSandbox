@@ -1,0 +1,102 @@
+<!--
+
+  This is an experiment in auto-styling dataset visualizations based on auto-detected datatypes.
+
+  Example dataset:
+  http://192.168.1.108:8080/auto-styling.html?dataset=8581a7460e144ae09ad25d47f8e82af8_0
+
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta
+  name="viewport"
+  content="initial-scale=1,maximum-scale=1,user-scalable=no"
+  />
+  <title>Tab Navigation Demo</title>
+  <link href="tabnav.css" rel="stylesheet">
+
+  <script src="https://unpkg.com/lodash@4.17.15/lodash.js"></script>
+
+  <!-- <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/css/calcite-web.min.css"> -->
+  <!-- <script src="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/js/calcite-web.min.js"></script> -->
+
+  <!-- calcite components -->
+  <script
+  type="module"
+  src="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.esm.js"
+></script>
+<script
+  nomodule=""
+  src="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.js"
+></script>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.css"
+/>
+
+  <!-- 3rd party libraries -->
+  <script src="https://d3js.org/d3.v4.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
+  <script src="https://unpkg.com/lodash@4.17.15/lodash.js"></script>
+  <script src="https://cdn.jsdelivr.net/autocomplete.js/0/autocomplete.min.js"></script>
+
+  <script type="module" src="tabnav.mjs"></script>
+</head>
+
+<body>
+  <div id="sidebar">
+    <div id="sidebarItems">
+
+      <select id="datasetList"></select>
+??
+      <div id="datasetName" tabindex="0"></div>
+      <div>
+        <span id="orgName"></span>
+        <span id="recordCount"></span>
+      </div>
+
+      <div class="section">
+        <span class="sectionHead">Filters:</span>
+        <span id="filtersCount"></span>
+
+        <div id="filtersList">
+        </div>
+        <span id="label">Filter <span id="featuresCount"></span> features:</span>
+        <calcite-input type="search" scale="s" id="filterAttributeSearch" placeholder="Search Attributes by Name" aria-label="Search attributes"></calcite-input>
+
+        <div id="filterAttributeList">
+        </div>
+      </div>
+
+      <div class="section">
+        <span id="label"  tabindex="2" >Style by Attribute:</span>
+        <calcite-input type="search" scale="s" id="styleAttributeSearch" placeholder="Search Attributes by Name" aria-label="Search stories"></calcite-input>
+        <div id="styleAttributeList" tabindex="2" >
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div id="viewDiv" tabindex="3" ></div>
+  <div id="zoomToData" class="esri-widget">
+    <label>
+      <calcite-checkbox checked="true"></calcite-checkbox>Zoom to data
+    </label>
+  </div>
+  <div id="darkMode" class="esri-widget">
+    <label>
+      <calcite-checkbox checked="false"></calcite-checkbox>Dark mode
+    </label>
+  </div>
+  <div id="labels" class="esri-widget">
+    <label>
+      <calcite-checkbox checked="false"></calcite-checkbox>Force labels
+    </label>
+  </div>
+</body>
+</html>
