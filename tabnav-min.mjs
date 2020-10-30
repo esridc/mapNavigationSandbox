@@ -62,6 +62,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   const DATASET_FIELD_UNIQUE_VALUES = {}; // cache by field name
+  var highlight = null;
 
   //
   // UTILITY FUNCTIONS
@@ -119,7 +120,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       container: "viewDiv",
       map: map,
       extent: getDatasetExtent(dataset),
-      ui: { components: [] }
+      ui: { components: [] },
+      highlightOptions: {
+        color: [0, 255, 255],
+        fillOpacity: 0.6
+      }
     });
 
     // add toggle checkboxes
@@ -835,6 +840,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   var keyboardModeActive = false;
 
   function showKeyboardModeCheckbox(value) {
+    let { view, layer } = state;
     console.log('showKeyboardModeCheckbox', value)
     keyboardModeActive = value;
     if (!keyboardModeActive) {
@@ -844,6 +850,32 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     } else {
       console.log('keyboardMode on');
       var keyboardModeKeydownListener = window.addEventListener('keydown', keyboardModeHandler);
+      view.whenLayerView(layer).then(async function(layerView) {
+        layerView.watch("updating", function(value) {
+          if (!value) {
+            // wait for the layer view to finish updating
+
+            // get all the features available for drawing.
+            layerView
+              .queryFeatures({
+                geometry: view.extent,
+                returnGeometry: true
+              })
+              .then(function(results) {
+                // do something with the resulting graphics
+                graphics = results.features;
+                console.log(graphics)
+              });
+          }
+        });
+        var features = (await state.layer.queryFeatures()).features;
+        if (highlight) {
+          highlight.remove();
+        }
+        // debugger
+        var objectId = features[0].attributes.FID;
+        highlight = layerView.highlight([objectId]);
+      });
     }
   }
 
