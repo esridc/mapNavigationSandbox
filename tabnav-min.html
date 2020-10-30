@@ -17,7 +17,7 @@
   content="initial-scale=1,maximum-scale=1,user-scalable=no"
   />
   <title>Tab Navigation Demo</title>
-  <link href="tabnav.css" rel="stylesheet">
+  <link href="tabnav-min.css" rel="stylesheet">
 
   <script src="https://unpkg.com/lodash@4.17.15/lodash.js"></script>
 
@@ -45,11 +45,11 @@
   <script src="https://unpkg.com/lodash@4.17.15/lodash.js"></script>
   <script src="https://cdn.jsdelivr.net/autocomplete.js/0/autocomplete.min.js"></script>
 
-  <script type="module" src="tabnav.mjs"></script>
+  <script type="module" src="tabnav-min.mjs"></script>
 </head>
 
 <body>
-  <div id="sidebar" tabindex="1">
+  <!-- <div id="sidebar" tabindex="1">
     <div id="sidebarItems">
 
       <select id="datasetList"></select>
@@ -80,7 +80,7 @@
       </div>
 
     </div>
-  </div>
+  </div> -->
   <div id="viewDiv" tabindex="0" ></div>
   <div id="zoomToData" class="esri-widget">
     <label>
@@ -97,7 +97,7 @@
       <calcite-checkbox checked="false"></calcite-checkbox>Force labels
     </label>
   </div>
-  <div id="keyboardMode" class="esri-widget hidden" tabindex="0">
+  <div id="keyboardMode" class="esri-widget, hidden" tabindex="0">
     <label>
       <calcite-checkbox checked="false"></calcite-checkbox>Keyboard mode
     </label>

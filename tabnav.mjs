@@ -761,6 +761,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       autoStyle({fieldName: state.fieldName})
     });
 
+
     // put vars on window for debugging
     Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ generateHistogram, HistogramRangeSlider, uniqueValues });
 
@@ -1525,7 +1526,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       const item = document.createElement('calcite-dropdown-item');
       item.setAttribute('class', 'attribute');
       item.addEventListener('keydown', (e) => {
-        // debugger
+        // debugger tabbed
         if (e.key == "ArrowDown") {
           if (e.target.nextElementSibling != null) {
             e.target.nextElementSibling.focus();
@@ -1535,12 +1536,20 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
             e.target.previousElementSibling.focus();
           }
         } else if (e.key == "Tab") {
-          // debugger
-          if (e.shiftKey) {
-            attributeList.previousElementSibling.focus();
-          } else {
-            attributeList.nextElementSibling.focus();
+          var el = e.target;
+          if (el.classList.contains("attribute")) {
+            if (el !== el.parentElement.lastElementChild) {
+              el.parentElement.lastElementChild.focus()
+            } else {
+              el.blur();
+              el.parentElement.parentElement.nextElementSibling.focus();
+            }
           }
+          // if (e.shiftKey) {
+          //   el.previousElementSibling.focus();
+          // } else {
+          //   el.nextElementSibling.focus();
+          // }
         }
       });
       i++;
@@ -1746,6 +1755,28 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     document.getElementById('featuresCount').innerHTML = '';
   }
 
+  //
+  // KEYBOARD NAVIGATION MODE
+  //
+
+  function activateKeyboardMode() {
+    var keyboardModeKeydownListener = window.addEventListener('keydown', (e) => {
+      if (e.key == "Tab" && !keyboardMode) {
+        if (document.activeElement == document.getElementById('viewDiv')) {
+          // show keyboard mode checkbox
+        }
+        if (e.shiftKey) {
+          // attributeList.previousElementSibling.focus();
+        } else {
+          // attributeList.nextElementSibling.focus();
+        }
+      }
+      // fix browser reloading when tabbing to the page when map has focus
+      if (e.key == "r" && e.metaKey && e.shiftKey) {
+        location.reload(true);
+      }  
+    });
+  }
 
   // TESTS
   // autoStyle({});
@@ -1753,8 +1784,31 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // autoStyle({fieldName:"parametersProjectObservationUID"});
   // addFilter({fieldName:"observationResult"});
   // addFilter({fieldName:"PROJECT_NUMBER"});
-  window.addEventListener('keydown', (e) => {
-    console.log(e)
+  // var focussed = document.activeElement;
+  var keydownListener = window.addEventListener('keydown', (e) => {
+    console.log(e.key)
+    if (e.key == "Tab" && !keyboardMode) {
+      if (document.activeElement == document.getElementById('viewDiv')) {
+        console.log('activate')
+        // show keyboard mode checkbox
+        const keyboardCheckbox = document.querySelector('#keyboardMode calcite-checkbox');
+        keyboardCheckbox.style.removeClass("hidden");
+        debugger
+        keyboardCheckbox.addEventListener('calciteCheckboxChange', (e) => {
+          activateKeyboardMode();
+        });
+        view.ui.add('keyboardMode', 'top-left');
+      }
+      if (e.shiftKey) {
+        // attributeList.previousElementSibling.focus();
+      } else {
+        // attributeList.nextElementSibling.focus();
+      }
+    }
+    // fix browser reloading when tabbing to the page when map has focus
+    if (e.key == "r" && e.metaKey && e.shiftKey) {
+      location.reload(true);
+    }
   });
 
 })();
