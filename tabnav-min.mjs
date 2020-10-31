@@ -25,6 +25,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   LabelClass,
   CIMSymbol,
   cimSymbolUtils,
+  Popup,
+  PopupTemplate,
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
@@ -39,6 +41,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/views/support/colorUtils",
   "esri/layers/support/LabelClass",
   "esri/symbols/CIMSymbol",
+  "esri/widgets/Popup",
+  "esri/PopupTemplate",
 ]);
 
   // data urls
@@ -196,6 +200,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       minScale: 0,
       maxScale: 0,
     });
+    layer.popupTemplate = {
+      content: "{NAME}"
+    }
     // update state
     state = {...state, layer, dataset};
 
@@ -869,33 +876,35 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           }
         });
         var features = (await state.layer.queryFeatures()).features;
-        if (highlight) {
-          highlight.remove();
-        }
         // debugger
-        var objectId = features[0].attributes.FID;
-        highlight = layerView.highlight([objectId]);
+        keyboardNavState = {
+          features,
+          feature: features[0],
+          featureIndex: 0
+        };
+        selectFeature(features[0]);
       });
     }
   }
 
-  var keyboardNavState = {};
+  var keyboardNavState = {
+    features: null,
+    feature: null,
+    featureIndex: null,
+  };
 
   function keyboardModeHandler(e) {
+    let { features, feature, featureIndex } = keyboardNavState;
     console.log(e.key)
     if (e.key == "Escape") {
       // if feature is selected, leave selection and move focus to keyboardMode div
     } else {
-      // prevent standard tab behavior
-      e.preventDefault();
-      return false;
     }
     if (e.key == "Tab") {
+      console.log('keyboardModeHandler tab')
       // if the keyboardMode context div is not selected, there has been mouse interaction -
-        // move focus to the context div and select the last selected feature
+      // move focus to the context div and select the last selected feature
 
-        // if no feature selected, select the first feature
-      // if a feature is selected, select the next feature
 
       // if (document.activeElement == document.getElementById('viewDiv')) {
       //   // show keyboard mode checkbox
@@ -904,11 +913,63 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // }
 
       if (e.shiftKey) {
+        console.log('keyboardModeHandler shift-tab')
+        // if no feature selected, select the last feature
+        if (!feature) {
+          featureIndex = 0;
+          feature = features[0];
+          selectFeature(feature);
+        }
         // if the first feature is selected, move focus to the keyboardMode checkbox
+        else if (featureIndex == 0) {
+        }
+        // if a feature is selected, select the previous feature
+        else {
+          featureIndex--;
+          feature = features[featureIndex];
+          selectFeature(feature);
+        }
       } else {
+        console.log('keyboardModeHandler normal tab')
+        // if no feature selected, select the first feature
+        if (!feature) {
+          featureIndex = 0;
+          feature = features[0];
+          selectFeature(feature);
+        }
         // if the last feature is selected, leave current feature selected but move focus to the next ui checkbox
+        else if (featureIndex == features.length-1) {
+        }
+        // if a feature is selected, select the next feature
+        else {
+          featureIndex++;
+          feature = features[featureIndex];
+          selectFeature(feature);
+        }
       }
     }
+    keyboardNavState = {...keyboardNavState, feature, featureIndex};
+    // prevent standard event behavior
+    e.preventDefault();
+    return false;
+  }
+
+  function selectFeature(feature) {
+    let {view, layer} = state;
+    view.whenLayerView(layer).then(async function(layerView) {
+      var objectId = feature.attributes.FID;
+
+      if (highlight) {
+        highlight.remove();
+      }
+      highlight = layerView.highlight([objectId]);
+      view.popup.open({
+        // Set the popup's title to the coordinates of the clicked location
+        title: `${keyboardNavState.featureIndex}: ${feature.attributes.sensorName}`,
+        // Set the location of the popup to the clicked location
+        location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
+      });
+    });
   }
 
   // TESTS
@@ -933,8 +994,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         state.view.ui.add('keyboardMode', 'top-left');
       }
       if (e.shiftKey) {
+        console.log('keydownListener shift-tab')
         // attributeList.previousElementSibling.focus();
       } else {
+        console.log('keydownListener tab')
         // attributeList.nextElementSibling.focus();
       }
     }
