@@ -881,7 +881,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
 
         // debugger
-        keyboardNavState = {
+        keyboardNavState = {...keyboardNavState,
           features,
           feature: features[0],
           featureIndex: 0
@@ -895,18 +895,22 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     features: null,
     feature: null,
     featureIndex: null,
+    modeLevel: 0,
   };
 
   function keyboardModeHandler(e) {
-    let { features, feature, featureIndex } = keyboardNavState;
+    let { features, feature, featureIndex, modeLevel } = keyboardNavState;
     console.log(e.key)
     if (e.key == "Enter") {
-    // if on the map container, move down one modal level to feature selection mode
-    // if feature is selected, move down one modal level, move focus to popup div
+      // if on the map container, move down one modal level to feature selection mode
+      // if feature is selected, move down one modal level, move focus to popup div
+      keyboardNavState.modeLevel++;
+      modeStatus(keyboardNavState.modeLevel)
     } else if (e.key == "Escape") {
       // if feature is selected, move up one modal level to the container
       // if inside a popup, move up one modal level to feature selection mode
-
+      keyboardNavState.modeLevel--;
+      modeStatus(keyboardNavState.modeLevel)
     // main navigation
     } else if (e.key == "Tab") {
       console.log('keyboardModeHandler tab')
@@ -994,10 +998,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
   var keydownListener = window.addEventListener('keydown', (e) => {
+    let el = document.activeElement;
+    focusStatus(el.id ? el.id : el.nodeName);
+    keyStatus(nameKeyCombo(e));
     if (!keyboardModeActive) {
       if (e.key == "Tab") {
         if (document.activeElement == document.getElementById('viewDiv')) {
           console.log('activate')
+          focusStatus('activate');
           // show keyboard mode checkbox
           const keyboardCheckbox = document.querySelector('#keyboardMode');
           // debugger
@@ -1010,6 +1018,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
             }
           });
           state.view.ui.add('keyboardMode', 'top-left');
+        } else {
+          // e.preventDefault();
         }
       }
     }
@@ -1018,5 +1028,24 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       location.reload(true);
     }
   });
+
+  function nameKeyCombo(e) {
+    let keyName = "";
+    switch (e.key) {
+      case " ":
+        keyName = "space"; break;
+      case "Meta":
+        keyName = ""; break;
+      case "Shift":
+        keyName = ""; break;
+      default:
+        keyName = e.key;
+    }
+    return (e.metaKey ? "cmd " : "") + (e.shiftKey ? "shift " : "") + keyName;
+  }
+  function focusStatus(msg) { document.getElementById("focusStatus").innerHTML = msg; }
+  function keyStatus(msg) { document.getElementById("keyStatus").innerHTML = msg; }
+  function modeStatus(msg) { document.getElementById("modeStatus").innerHTML = msg; }
+
 
 })();

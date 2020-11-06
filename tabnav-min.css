@@ -330,3 +330,16 @@ body,
 .hidden {
   visibility: hidden;
 }
+
+#status {
+  position: absolute;
+  bottom: 0px;
+  border: 2px solid gold;
+  padding: 10px;
+  background: white;
+}
+
+#keyStatus, #modeStatus, #focusStatus {
+  border: 2px solid gold;
+  padding: 10px;
+}
