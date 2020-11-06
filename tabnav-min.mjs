@@ -1,5 +1,6 @@
 
 import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/dist/esm/esri-loader.js';
+// import { default as sound } from '/sound.js';
 
 (async () => {
 
@@ -201,7 +202,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       maxScale: 0,
     });
     layer.popupTemplate = {
-      content: "{NAME}"
+      title: "Popup Template Title",
+      content: "Popup Template Content? {sensorName}"
     }
     // update state
     state = {...state, layer, dataset};
@@ -870,12 +872,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
               })
               .then(function(results) {
                 // do something with the resulting graphics
-                graphics = results.features;
-                console.log(graphics)
+                let graphics = results.features;
+                // console.log(graphics)
               });
           }
         });
         var features = (await state.layer.queryFeatures()).features;
+        features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
+
         // debugger
         keyboardNavState = {
           features,
@@ -896,21 +900,18 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function keyboardModeHandler(e) {
     let { features, feature, featureIndex } = keyboardNavState;
     console.log(e.key)
-    if (e.key == "Escape") {
-      // if feature is selected, leave selection and move focus to keyboardMode div
-    } else {
-    }
-    if (e.key == "Tab") {
+    if (e.key == "Enter") {
+    // if on the map container, move down one modal level to feature selection mode
+    // if feature is selected, move down one modal level, move focus to popup div
+    } else if (e.key == "Escape") {
+      // if feature is selected, move up one modal level to the container
+      // if inside a popup, move up one modal level to feature selection mode
+
+    // main navigation
+    } else if (e.key == "Tab") {
       console.log('keyboardModeHandler tab')
       // if the keyboardMode context div is not selected, there has been mouse interaction -
       // move focus to the context div and select the last selected feature
-
-
-      // if (document.activeElement == document.getElementById('viewDiv')) {
-      //   // show keyboard mode checkbox
-      // } else {
-      //   console.log('something weird happened')
-      // }
 
       if (e.shiftKey) {
         console.log('keyboardModeHandler shift-tab')
@@ -945,6 +946,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           featureIndex++;
           feature = features[featureIndex];
           selectFeature(feature);
+          // sound.stop();
+          // sound.start();
         }
       }
     }
@@ -952,6 +955,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // prevent standard event behavior
     e.preventDefault();
     return false;
+  }
+
+  function popupContent(feature) {
+    var div = document.createElement("div");
+    div.innerHTML = `<p role="alert">Popup content: ${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}</p>`
+    div.setAttribute('id', 'popup-content')
+    div.setAttribute('tabindex', '0')
+    return div;
   }
 
   function selectFeature(feature) {
@@ -963,9 +974,15 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         highlight.remove();
       }
       highlight = layerView.highlight([objectId]);
+      view.popup.watch("visible", () => {
+        console.log('popup visible')
+        document.activeElement.blur();
+        document.getElementById("popup-content").focus();
+        console.log('focused?', document.activeElement)
+      });
       view.popup.open({
-        // Set the popup's title to the coordinates of the clicked location
-        title: `${keyboardNavState.featureIndex}: ${feature.attributes.sensorName}`,
+        title: `Popup title: ${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`,
+        content: popupContent(feature),
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
       });
@@ -975,30 +992,25 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // TESTS
   loadDataset({env: "prod", datasetId:"8581a7460e144ae09ad25d47f8e82af8_0"});
 
-  // set up global keydown listener
+  // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
   var keydownListener = window.addEventListener('keydown', (e) => {
-    if (e.key == "Tab" && !keyboardModeActive) {
-      if (document.activeElement == document.getElementById('viewDiv')) {
-        console.log('activate')
-        // show keyboard mode checkbox
-        const keyboardCheckbox = document.querySelector('#keyboardMode');
-        // debugger
-        keyboardCheckbox.classList.remove("hidden");
-        keyboardCheckbox.addEventListener('calciteCheckboxChange', (e) => {
-          if (e.target.checked) {
-            showKeyboardModeCheckbox(true);
-          } else {
-            showKeyboardModeCheckbox(false);
-          }
-        });
-        state.view.ui.add('keyboardMode', 'top-left');
-      }
-      if (e.shiftKey) {
-        console.log('keydownListener shift-tab')
-        // attributeList.previousElementSibling.focus();
-      } else {
-        console.log('keydownListener tab')
-        // attributeList.nextElementSibling.focus();
+    if (!keyboardModeActive) {
+      if (e.key == "Tab") {
+        if (document.activeElement == document.getElementById('viewDiv')) {
+          console.log('activate')
+          // show keyboard mode checkbox
+          const keyboardCheckbox = document.querySelector('#keyboardMode');
+          // debugger
+          keyboardCheckbox.classList.remove("hidden");
+          keyboardCheckbox.addEventListener('calciteCheckboxChange', (e) => {
+            if (e.target.checked) {
+              showKeyboardModeCheckbox(true);
+            } else {
+              showKeyboardModeCheckbox(false);
+            }
+          });
+          state.view.ui.add('keyboardMode', 'top-left');
+        }
       }
     }
     // fix browser reloading when tabbing to the page when map has focus
@@ -1008,4 +1020,3 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   });
 
 })();
-
