@@ -1,0 +1,146 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1, maximum-scale=1,user-scalable=no"
+    />
+    <!--
+  ArcGIS API for JavaScript, https://js.arcgis.com
+  For more information about the popuptemplate-function sample, read the original sample description at developers.arcgis.com.
+  https://developers.arcgis.com/javascript/latest/sample-code/popuptemplate-function/index.html
+  -->
+<title>
+      PopupTemplate - use functions to set content | Sample | ArcGIS API for
+      JavaScript 4.17
+    </title>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.17/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.17/"></script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+    </style>
+
+    <script>
+      var populationChange;
+      require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/Layer"
+      ], function (Map, MapView, Layer) {
+        var map = new Map({
+          basemap: "dark-gray-vector"
+        });
+
+        // Create the MapView
+        var view = new MapView({
+          container: "viewDiv",
+          map: map,
+          zoom: 6,
+          center: [-87, 34]
+        });
+
+        Layer.fromPortalItem({
+          portalItem: {
+            // autocasts as new PortalItem()
+            id: "e8f85b4982a24210b9c8aa20ba4e1bf7"
+          }
+        }).then(function (layer) {
+          // add the layer to the map
+          map.add(layer);
+
+          // Create a new popupTemplate for the layer and
+          // format the numeric field values using the FieldInfoFormat properties. Call the custom populationChange()
+          // function to calculate percent change for the county.
+          var popupTemplate = {
+            // autocasts as new PopupTemplate()
+            title: "Population in {NAME}",
+            outFields: ["*"],
+            content: populationChange,
+            fieldInfos: [
+              {
+                fieldName: "POP2010",
+                format: {
+                  digitSeparator: true,
+                  places: 0
+                }
+              },
+              {
+                fieldName: "POP10_SQMI",
+                format: {
+                  digitSeparator: true,
+                  places: 2
+                }
+              },
+              {
+                fieldName: "POP2013",
+                format: {
+                  digitSeparator: true,
+                  places: 0
+                }
+              },
+              {
+                fieldName: "POP13_SQMI",
+                format: {
+                  digitSeparator: true,
+                  places: 2
+                }
+              }
+            ]
+          };
+
+          layer.popupTemplate = popupTemplate;
+
+          function populationChange(feature) {
+            var div = document.createElement("div");
+            var upArrow =
+              '<svg width="16" height="16" ><polygon points="14.14 7.07 7.07 0 0 7.07 4.07 7.07 4.07 16 10.07 16 10.07 7.07 14.14 7.07" style="fill:green"/></svg>';
+            var downArrow =
+              '<svg width="16" height="16"><polygon points="0 8.93 7.07 16 14.14 8.93 10.07 8.93 10.07 0 4.07 0 4.07 8.93 0 8.93" style="fill:red"/></svg>';
+
+            // Calculate the population percent change from 2010 to 2013.
+            var diff =
+              feature.graphic.attributes.POP2013 -
+              feature.graphic.attributes.POP2010;
+            var pctChange = (diff * 100) / feature.graphic.attributes.POP2010;
+            var arrow = diff > 0 ? upArrow : downArrow;
+
+            // Add green arrow if the percent change is positive and a red arrow for negative percent change.
+            div.innerHTML =
+              "As of 2010, the total population in this area was <b>" +
+              feature.graphic.attributes.POP2010 +
+              "</b> and the density was <b>" +
+              feature.graphic.attributes.POP10_SQMI +
+              "</b> sq mi. As of 2013, the total population was <b>" +
+              feature.graphic.attributes.POP2013 +
+              "</b> and the density was <b>" +
+              feature.graphic.attributes.POP13_SQMI +
+              "</b> sq mi. <br/> <br/>" +
+              "Percent change is " +
+              arrow +
+              "<span style='color: " +
+              (pctChange < 0 ? "red" : "green") +
+              ";'>" +
+              pctChange.toFixed(3) +
+              "%</span>";
+            return div;
+          }
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="viewDiv"></div>
+  </body>
+</html>
