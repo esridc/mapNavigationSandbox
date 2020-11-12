@@ -43,6 +43,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/views/support/colorUtils",
   "esri/layers/support/LabelClass",
   "esri/symbols/CIMSymbol",
+  "esri/symbols/support/cimSymbolUtils",
   "esri/widgets/Popup",
   "esri/PopupTemplate",
   "esri/request",
@@ -917,6 +918,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         document.getElementById("popup-content").focus();
         // document.getElementsByClassName("esri-popup")[0].focus();
         console.log('focused?', document.activeElement)
+        statusAlert("Feature selected. Enter to examine.")
       }
     } else if (e.key == "Escape") {
       // if feature is selected, move up one modal level to the container
@@ -934,11 +936,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
       if (modeLevel == 0) {
         document.activeElement.blur();
-        // document.getElementById("popup-content").focus();
+        statusAlert("Feature selection.")
       }
     // main navigation
     } else if (e.key == "Tab") {
-      console.log('keyboardModeHandler tab')
       // if the keyboardMode context div is not selected, there has been mouse interaction -
       // move focus to the context div and select the last selected feature
       if (modeLevel == -1) {
@@ -973,7 +974,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           selectFeature(feature);
         }
       } else {
-        console.log('keyboardModeHandler normal tab')
+        // console.log('keyboardModeHandler normal tab')
         // if no feature selected, select the first feature
         if (!feature) {
           featureIndex = 0;
@@ -1079,21 +1080,22 @@ var count = 0;
       row = thead.insertRow();
       td = document.createElement('td');
       td.innerText = `${keys[x]}`
-      td.setAttribute('tab-index', '0');
+      td.setAttribute('tabindex', '0');
       row.appendChild(td);
 
       td = document.createElement('td');
       td.innerText = `${vals[x]}`
-      td.setAttribute('tab-index', '0');
+      td.setAttribute('tabindex', '0');
       row.appendChild(td);
     }
 
     div.setAttribute('id', 'popup-content');
     div.setAttribute('tabindex', '0');
-    return div;
+    let meta = `${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`;
+    return {div, meta};
   }
 
-  function selectFeature(feature) {
+  async function selectFeature(feature) {
     let {view, layer} = state;
     view.whenLayerView(layer).then(async function(layerView) {
       var objectId = feature.attributes.FID;
@@ -1112,12 +1114,14 @@ var count = 0;
           console.log('no popup', e)
         }
       });
+      let content = popupContent(feature);
       view.popup.open({
         // title: `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`,
-        content: popupContent(feature),
+        content: content.div,
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
       });
+      statusAlert('Popup: '+content.meta);
     });
   }
 
@@ -1175,9 +1179,10 @@ var count = 0;
   function keyStatus(msg) { document.getElementById("keyStatus").innerHTML = msg; }
   function modeStatus(msg) {
     document.getElementById("modeStatus").innerHTML = msg;
-    statusAlert('Floor ' + keyboardNavState.modeLevel + '.');
+    // statusAlert('Floor ' + keyboardNavState.modeLevel + '.');
   }
   function statusAlert(msg) { document.getElementById("keyboardModeAlert").innerHTML = msg; }
+
 
 
 })();
