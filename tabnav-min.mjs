@@ -28,6 +28,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   cimSymbolUtils,
   Popup,
   PopupTemplate,
+  esriRequest,
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
@@ -44,6 +45,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/symbols/CIMSymbol",
   "esri/widgets/Popup",
   "esri/PopupTemplate",
+  "esri/request",
 ]);
 
   // data urls
@@ -898,6 +900,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     feature: null,
     featureIndex: null,
     modeLevel: 0,
+    place: null
   };
 
   // key event trapping and mode management for Keyboard Mode
@@ -1000,13 +1003,61 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     return false;
   }
 
+  window.requests = [];
+var count = 0;
+
   function popupContent(feature) {
+    // Abort any outstanding requests
+    if (requests.length > 0) {
+      requests.map((r, i) => {
+        // Abort requests that are aware of the controller's signal
+        r.controller.abort();
+      })
+      // reset requests stack
+      requests = [];
+    }
+    keyboardNavState.place = null;
+
+    var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
+    var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
+
     var div = document.createElement("div");
     var atts = feature.attributes;
     var keys = Object.keys(atts);
     var vals = Object.values(atts);
-    div.innerHTML += `<h3>Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}</h3>`;
-    div.innerHTML += `${keys.length} feature attributes`;
+    let h2 = document.createElement("h2");
+    h2.innerHTML = `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}:`;
+    let placeLabel = document.createElement("h3");
+    placeLabel.setAttribute('id', "placeLabel");
+    div.appendChild(h2);
+    div.appendChild(placeLabel);
+    let controller = new AbortController();
+    let signal = controller.signal;
+    count++;
+    requests.push({
+      controller,
+      count
+    });
+
+    esriRequest(url, {
+      signal,
+      responseType: "json"
+    }).then(function(response){
+      console.log('queue:', requests.map(r => r.count))
+      // The requested data
+      var geoJson = response.data;
+      // track this in state so the popup knows whether to cancel any outstanding requests
+      keyboardNavState.place = geoJson.address.LongLabel;
+      document.getElementById('placeLabel').innerHTML = geoJson.address.LongLabel;
+    }).catch((err) => {
+      if (err.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        console.error('Error encountered', err);
+      }
+    });
+
+    div.innerHTML += `${keys.length} feature attributes:`;
 
     let table = document.createElement('table');
     div.appendChild(table);
