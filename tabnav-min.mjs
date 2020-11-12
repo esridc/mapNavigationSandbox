@@ -853,11 +853,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     console.log('showKeyboardModeCheckbox', value)
     keyboardModeActive = value;
     if (!keyboardModeActive) {
+      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off."
       console.log('keyboardMode off');
       window.removeEventListener('keydown', keyboardModeHandler);
       return;
     } else {
       console.log('keyboardMode on');
+      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode on."
       var keyboardModeKeydownListener = window.addEventListener('keydown', keyboardModeHandler);
       view.whenLayerView(layer).then(async function(layerView) {
         layerView.watch("updating", function(value) {
@@ -898,28 +900,61 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     modeLevel: 0,
   };
 
+  // key event trapping and mode management for Keyboard Mode
   function keyboardModeHandler(e) {
     let { features, feature, featureIndex, modeLevel } = keyboardNavState;
+    // statusAlert('Floor ' + modeLevel + '.');
     console.log(e.key)
     if (e.key == "Enter") {
       // if on the map container, move down one modal level to feature selection mode
+      if (modeLevel < 1) modeLevel++;
       // if feature is selected, move down one modal level, move focus to popup div
-      keyboardNavState.modeLevel++;
-      modeStatus(keyboardNavState.modeLevel)
+      if (modeLevel == 1) {
+        document.activeElement.blur();
+        document.getElementById("popup-content").focus();
+        // document.getElementsByClassName("esri-popup")[0].focus();
+        console.log('focused?', document.activeElement)
+      }
     } else if (e.key == "Escape") {
       // if feature is selected, move up one modal level to the container
       // if inside a popup, move up one modal level to feature selection mode
-      keyboardNavState.modeLevel--;
-      modeStatus(keyboardNavState.modeLevel)
+      if (modeLevel > -3) modeLevel--;
+
+      if (modeLevel == -1) {
+        document.activeElement.blur();
+        document.getElementsByClassName("esri-popup")[0].focus();
+        document.querySelector('#keyboardMode');
+        document.querySelector('#keyboardMode').checked = false;
+        document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
+        return;
+      }
+
+      if (modeLevel == 0) {
+        document.activeElement.blur();
+        // document.getElementById("popup-content").focus();
+      }
     // main navigation
     } else if (e.key == "Tab") {
       console.log('keyboardModeHandler tab')
       // if the keyboardMode context div is not selected, there has been mouse interaction -
       // move focus to the context div and select the last selected feature
+      if (modeLevel == -1) {
+        return;
+        // return e.preventDefault();
+      }
+      if (modeLevel == 1) {
+        console.log('tab through popup', document.activeElement)
+        return;
+        // return e.preventDefault();
+      }
 
       if (e.shiftKey) {
         console.log('keyboardModeHandler shift-tab')
         // if no feature selected, select the last feature
+        if (featureIndex < 0) {
+
+        }
+
         if (!feature) {
           featureIndex = 0;
           feature = features[0];
@@ -955,17 +990,55 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         }
       }
     }
-    keyboardNavState = {...keyboardNavState, feature, featureIndex};
+    keyboardNavState = {...keyboardNavState, feature, featureIndex, modeLevel};
     // prevent standard event behavior
-    e.preventDefault();
+    if (modeLevel == 0) {
+      e.preventDefault();
+    }
+    modeStatus(modeLevel)
+
     return false;
   }
 
   function popupContent(feature) {
     var div = document.createElement("div");
-    div.innerHTML = `<p role="alert">Popup content: ${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}</p>`
-    div.setAttribute('id', 'popup-content')
-    div.setAttribute('tabindex', '0')
+    var atts = feature.attributes;
+    var keys = Object.keys(atts);
+    var vals = Object.values(atts);
+    div.innerHTML += `<h3>Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}</h3>`;
+    div.innerHTML += `${keys.length} feature attributes`;
+
+    let table = document.createElement('table');
+    div.appendChild(table);
+    table.setAttribute('aria-label', 'Feature Attributes');
+    table.setAttribute('tabindex', '0');
+    let thead = table.createTHead();
+    var row = thead.insertRow();
+    var th = document.createElement('th');
+    th.setAttribute('role', 'columnheader');
+    th.innerText = "Attribute name"
+    row.appendChild(th);
+    th = document.createElement('th');
+    th.setAttribute('role', 'columnheader');
+    th.innerText = "Attribute value"
+    row.appendChild(th);
+    var td;
+
+    for (var x=0; x<keys.length; x++) {
+      row = thead.insertRow();
+      td = document.createElement('td');
+      td.innerText = `${keys[x]}`
+      td.setAttribute('tab-index', '0');
+      row.appendChild(td);
+
+      td = document.createElement('td');
+      td.innerText = `${vals[x]}`
+      td.setAttribute('tab-index', '0');
+      row.appendChild(td);
+    }
+
+    div.setAttribute('id', 'popup-content');
+    div.setAttribute('tabindex', '0');
     return div;
   }
 
@@ -978,14 +1051,18 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         highlight.remove();
       }
       highlight = layerView.highlight([objectId]);
-      view.popup.watch("visible", () => {
-        console.log('popup visible')
-        document.activeElement.blur();
-        document.getElementById("popup-content").focus();
-        console.log('focused?', document.activeElement)
+      view.popup.watch("visible", (e) => {
+        console.log('popup visible?', e)
+        if (document.getElementById("popup-content")) {
+          document.activeElement.blur();
+          document.getElementById("popup-content").focus();
+          console.log('focused?', document.activeElement)
+        } else {
+          console.log('no popup', e)
+        }
       });
       view.popup.open({
-        title: `Popup title: ${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`,
+        // title: `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`,
         content: popupContent(feature),
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
@@ -999,7 +1076,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
   var keydownListener = window.addEventListener('keydown', (e) => {
     let el = document.activeElement;
-    focusStatus(el.id ? el.id : el.nodeName);
+    focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
     keyStatus(nameKeyCombo(e));
     if (!keyboardModeActive) {
       if (e.key == "Tab") {
@@ -1045,7 +1122,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
   function focusStatus(msg) { document.getElementById("focusStatus").innerHTML = msg; }
   function keyStatus(msg) { document.getElementById("keyStatus").innerHTML = msg; }
-  function modeStatus(msg) { document.getElementById("modeStatus").innerHTML = msg; }
+  function modeStatus(msg) {
+    document.getElementById("modeStatus").innerHTML = msg;
+    statusAlert('Floor ' + keyboardNavState.modeLevel + '.');
+  }
+  function statusAlert(msg) { document.getElementById("keyboardModeAlert").innerHTML = msg; }
 
 
 })();

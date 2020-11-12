@@ -97,15 +97,27 @@
       <calcite-checkbox checked="false"></calcite-checkbox>Force labels
     </label>
   </div>
-  <div id="keyboardMode" class="esri-widget, hidden" tabindex="0">
-    <label>
-      <calcite-checkbox checked="false"></calcite-checkbox><p role="alert">Keyboard mode</p>
-    </label>
+  <div id="keyboardMode" class="esri-widget, hidden">
+    <calcite-checkbox aira-checked="false" tabindex="0" aria-labelledby="keyboardModeLabel"></calcite-checkbox>
+      <label id="keyboardModeLabel">Keyboard mode</label>
   </div>
   <div id="status">
-    <div id="focusStatus">focusStatus</div>
-    <div id="keyStatus">keyStatus</div>
-    <div id="modeStatus">modeStatus</div>
+    <div>
+      Focus:
+      <div id="focusStatus">focusStatus</div>
+    </div>
+    <div>
+      Key:
+      <div id="keyStatus">keyStatus</div>
+    </div>
+    <div>
+      Mode:
+      <div id="modeStatus">modeStatus</div>
+    </div>
   </div>
+  <div id="keyboardModeAlert" role="alert">
+    Top level.
+  </div>
+
 </body>
 </html>

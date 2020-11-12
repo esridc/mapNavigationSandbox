@@ -323,9 +323,9 @@ body,
   background-color: #ddd;
 }
 
-/* :focus {
-  border: 2px solid gold;
-} */
+:focus {
+  border: 2px solid blue;
+}
 
 .hidden {
   visibility: hidden;
