@@ -81,7 +81,7 @@
 
     </div>
   </div> -->
-  <div id="viewDiv" tabindex="0" ></div>
+  <div id="viewDiv" tabindex="0" aria-label="Map"></div>
   <div id="zoomToData" class="esri-widget">
     <label>
       <calcite-checkbox checked="true"></calcite-checkbox>Zoom to data
@@ -117,6 +117,20 @@
   </div>
   <div id="keyboardModeAlert" role="alert">
     Top level.
+  </div>
+
+  <!-- popup content template -->
+  <div style="position: absolute; visibility: hidden" id="popup-content">
+    <h3 id="placeLabel"></h3>
+    <table id="popupTable" aria-label='Feature Attributes'>
+      <thead>
+        <tr>
+          <th role='columnheader'>Attribute Name</th>
+          <th role='columnheader'>Attribute Value</th>
+        </tr>
+      </thead>
+
+    </table>
   </div>
 
 </body>

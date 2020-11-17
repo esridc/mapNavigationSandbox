@@ -851,7 +851,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   //
   var keyboardModeActive = false;
 
-  function showKeyboardModeCheckbox(value) {
+  async function showKeyboardModeCheckbox(value) {
     let { view, layer } = state;
     console.log('showKeyboardModeCheckbox', value)
     keyboardModeActive = value;
@@ -918,7 +918,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         document.getElementById("popup-content").focus();
         // document.getElementsByClassName("esri-popup")[0].focus();
         console.log('focused?', document.activeElement)
-        statusAlert("Feature selected. Enter to examine.")
+        statusAlert(`Feature #${featureIndex} selected.`)
       }
     } else if (e.key == "Escape") {
       // if feature is selected, move up one modal level to the container
@@ -1022,16 +1022,12 @@ var count = 0;
     var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
     var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
 
-    var div = document.createElement("div");
+    let div = document.getElementById('popup-content');
+    div.setAttribute('style', '');
+
     var atts = feature.attributes;
     var keys = Object.keys(atts);
     var vals = Object.values(atts);
-    let h2 = document.createElement("h2");
-    h2.innerHTML = `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}:`;
-    let placeLabel = document.createElement("h3");
-    placeLabel.setAttribute('id', "placeLabel");
-    div.appendChild(h2);
-    div.appendChild(placeLabel);
     let controller = new AbortController();
     let signal = controller.signal;
     count++;
@@ -1060,24 +1056,12 @@ var count = 0;
 
     div.innerHTML += `${keys.length} feature attributes:`;
 
-    let table = document.createElement('table');
-    div.appendChild(table);
-    table.setAttribute('aria-label', 'Feature Attributes');
+    let table = document.getElementById('popupTable');
     table.setAttribute('tabindex', '0');
-    let thead = table.createTHead();
-    var row = thead.insertRow();
-    var th = document.createElement('th');
-    th.setAttribute('role', 'columnheader');
-    th.innerText = "Attribute name"
-    row.appendChild(th);
-    th = document.createElement('th');
-    th.setAttribute('role', 'columnheader');
-    th.innerText = "Attribute value"
-    row.appendChild(th);
     var td;
 
     for (var x=0; x<keys.length; x++) {
-      row = thead.insertRow();
+      let row = table.insertRow();
       td = document.createElement('td');
       td.innerText = `${keys[x]}`
       td.setAttribute('tabindex', '0');
@@ -1089,9 +1073,7 @@ var count = 0;
       row.appendChild(td);
     }
 
-    div.setAttribute('id', 'popup-content');
-    div.setAttribute('tabindex', '0');
-    let meta = `${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`;
+    let meta = `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`;
     return {div, meta};
   }
 
@@ -1116,7 +1098,7 @@ var count = 0;
       });
       let content = popupContent(feature);
       view.popup.open({
-        // title: `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`,
+        title: content.meta,
         content: content.div,
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
@@ -1129,7 +1111,7 @@ var count = 0;
   loadDataset({env: "prod", datasetId:"8581a7460e144ae09ad25d47f8e82af8_0"});
 
   // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
-  var keydownListener = window.addEventListener('keydown', (e) => {
+  var keydownListener = window.addEventListener('keydown', async e => {
     let el = document.activeElement;
     focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
     keyStatus(nameKeyCombo(e));
