@@ -143,17 +143,17 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       updateLayerViewEffect();
     });
 
-    view.ui.add('darkMode', 'top-right');
-    darkModeCheckbox.addEventListener('calciteCheckboxChange', async () => {
-      state.view = await drawMap();
-      autoStyle({fieldName: state.fieldName})
-    });
+    // view.ui.add('darkMode', 'top-right');
+    // darkModeCheckbox.addEventListener('calciteCheckboxChange', async () => {
+    //   state.view = await drawMap();
+    //   autoStyle({fieldName: state.fieldName})
+    // });
 
-    view.ui.add('labels', 'top-right');
-    const labelsCheckbox = document.querySelector('#labels calcite-checkbox');
-    labelsCheckbox.addEventListener('calciteCheckboxChange', () => {
-      autoStyle({fieldName: state.fieldName})
-    });
+    // view.ui.add('labels', 'top-right');
+    // const labelsCheckbox = document.querySelector('#labels calcite-checkbox');
+    // labelsCheckbox.addEventListener('calciteCheckboxChange', () => {
+    //   autoStyle({fieldName: state.fieldName})
+    // });
 
 
     // put vars on window for debugging
