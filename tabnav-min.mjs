@@ -864,6 +864,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       console.log('keyboardMode on');
       document.getElementById("keyboardModeLabel").innerText = "Keyboard mode on."
       var keyboardModeKeydownListener = window.addEventListener('keydown', keyboardModeHandler);
+      if (!view) {
+        view = await drawMap();
+      }
       view.whenLayerView(layer).then(async function(layerView) {
         layerView.watch("updating", function(value) {
           if (!value) {
@@ -936,7 +939,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
       if (modeLevel == 0) {
         document.activeElement.blur();
-        statusAlert("Feature selection.")
+        statusAlert("Leaving feature. Feature selection.")
       }
     // main navigation
     } else if (e.key == "Tab") {
@@ -1010,6 +1013,7 @@ var count = 0;
   function popupContent(feature) {
     // Abort any outstanding requests
     if (requests.length > 0) {
+      // (At the moment there's no code path to > 1 request, but there was once, and may be later)
       requests.map((r, i) => {
         // Abort requests that are aware of the controller's signal
         r.controller.abort();
@@ -1040,7 +1044,7 @@ var count = 0;
       signal,
       responseType: "json"
     }).then(function(response){
-      console.log('queue:', requests.map(r => r.count))
+      // console.log('queue:', requests.map(r => r.count))
       // The requested data
       var geoJson = response.data;
       // track this in state so the popup knows whether to cancel any outstanding requests
@@ -1087,13 +1091,13 @@ var count = 0;
       }
       highlight = layerView.highlight([objectId]);
       view.popup.watch("visible", (e) => {
-        console.log('popup visible?', e)
+        // console.log('popup visible?', e)
         if (document.getElementById("popup-content")) {
           document.activeElement.blur();
           document.getElementById("popup-content").focus();
-          console.log('focused?', document.activeElement)
+          console.log('focused:', document.activeElement)
         } else {
-          console.log('no popup', e)
+          // console.log('no popup', e)
         }
       });
       let content = popupContent(feature);
@@ -1131,6 +1135,9 @@ var count = 0;
               showKeyboardModeCheckbox(false);
             }
           });
+          if (!state.view) {
+            state.view = await drawMap();
+          }
           state.view.ui.add('keyboardMode', 'top-left');
         } else {
           // e.preventDefault();
