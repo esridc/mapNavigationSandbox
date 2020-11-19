@@ -1028,7 +1028,15 @@ var count = 0;
     var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
     var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
 
-    let div = document.getElementById('popup-content');
+    let template = document.getElementById('popup-content-template');
+    console.log('template:', template)
+    let div = template.cloneNode(true);
+    template.parentElement.appendChild(div);
+
+    if (!div) {
+      return console.log('No popup content div')
+    }
+    div.setAttribute('id', 'popup-content');
     div.setAttribute('style', '');
 
     var atts = feature.attributes;
@@ -1061,11 +1069,9 @@ var count = 0;
     });
 
     div.innerHTML += `${keys.length} feature attributes:`;
-
-    let table = document.getElementById('popupTable');
+    let table = div.querySelector('#popupTable');
     table.setAttribute('tabindex', '0');
     var td;
-
     for (var x=0; x<keys.length; x++) {
       let row = table.insertRow();
       td = document.createElement('td');
@@ -1078,13 +1084,15 @@ var count = 0;
       td.setAttribute('tabindex', '0');
       row.appendChild(td);
     }
-
     let meta = `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`;
     return {div, meta};
   }
 
   async function selectFeature(feature) {
-    let {view, layer} = state;
+    if (!feature) {
+      return console.log("No feature selected")
+    }
+  let {view, layer} = state;
     view.whenLayerView(layer).then(async function(layerView) {
       var objectId = feature.attributes.FID;
 
@@ -1103,6 +1111,9 @@ var count = 0;
         }
       });
       let content = popupContent(feature);
+      if (!content) {
+        return console.log("No popup content")
+      }
       view.popup.open({
         title: content.meta,
         content: content.div,
@@ -1121,6 +1132,8 @@ var count = 0;
     let el = document.activeElement;
     focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
     keyStatus(nameKeyCombo(e));
+
+    // activate keyboardMode when tabbing into map
     if (!keyboardModeActive) {
       if (e.key == "Tab") {
         if (document.activeElement == document.getElementById('viewDiv')) {
