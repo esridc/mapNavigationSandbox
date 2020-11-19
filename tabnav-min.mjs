@@ -926,15 +926,17 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     } else if (e.key == "Escape") {
       // if feature is selected, move up one modal level to the container
       // if inside a popup, move up one modal level to feature selection mode
-      if (modeLevel > -3) modeLevel--;
+      if (modeLevel > -3) {
+        modeLevel--;
+      }
 
       if (modeLevel == -1) {
         document.activeElement.blur();
         document.getElementsByClassName("esri-popup")[0].focus();
         document.querySelector('#keyboardMode');
-        document.querySelector('#keyboardMode').checked = false;
+        document.querySelector('#keyboardMode').getElementsByTagName('calcite-checkbox')[0].checked = false;
         document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
-        return;
+        state.view.popup.close();
       }
 
       if (modeLevel == 0) {
