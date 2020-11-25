@@ -978,8 +978,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     if (modeLevel == -1) {
       document.activeElement.blur();
       document.getElementsByClassName("esri-popup")[0].focus();
-      document.querySelector('#keyboardMode');
-      document.querySelector('#keyboardMode').getElementsByTagName('calcite-checkbox')[0].checked = false;
+      document.querySelector('#keyboardModeCheckbox').checked = false;
       document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
       state.view.popup.close();
     }
@@ -1228,6 +1227,64 @@ var count = 0;
     // statusAlert('Floor ' + keyboardNavState.modeLevel + '.');
   }
   function statusAlert(msg) { document.getElementById("keyboardModeAlert").innerHTML = msg; }
+
+
+  // TONE.JS SETUP
+
+    // make a pentatonic scale - root is 1, other notes are ratios relative to 1
+    let pentatonic = [1, 1.125, 1.265625, 1.5, 1.6875];
+    let chromatic = [1, 1.059463, 1.122462, 1.189207, 1.259921, 1.334839, 1.414213, 1.498307, 1.587401, 1.681792, 1.781797, 1.887748];
+
+    const panner = new Tone.Panner(1).toDestination();
+    const reverb = new Tone.Reverb(2.4).toDestination();
+    //  panner.pan.rampTo(-1, 0.5);
+    const synth = new Tone.Synth().chain(reverb).toDestination();
+
+    const osc = new Tone.Oscillator().toDestination();
+    // multiply the output of the signal by 2 using the waveshaper's function
+    const timesTwo = new Tone.WaveShaper((val) => val * 2, 2048).connect(osc.frequency);
+    const signal = new Tone.Signal(440).connect(timesTwo);
+
+  function rand(x) {
+    return Math.floor(Math.random()*x);
+  }
+
+  function getNotes() {
+    var notes = [];
+    for (var x=0; x < 20; x++) {
+      notes.push(
+        // 130.813 = C3
+        {time: x/20, note: 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .3}
+        // {time: x/20, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
+        // {time: x/10, note: 130.813 * 130.813*Math.random(), velocity: .3}
+      )
+    };
+    return notes;
+  }
+
+  document.querySelector('#soundModeCheckbox').addEventListener('calciteCheckboxChange', () => {
+    setup();
+  });
+
+  function setup() {
+    Tone.start();
+		// const osc = new Tone.Oscillator({
+		// 	type: "sine",
+		// 	frequency: 440,
+		// 	volume: -16
+		// }).toDestination();
+
+
+    // use an array of objects as long as the object has a "time" attribute
+    const part = new Tone.Part(((time, value) => {
+      synth.triggerAttackRelease(value.note, "8n", time, value.velocity);
+    }), getNotes() ).start(0);
+
+    if (Tone.Transport.state == "started") {
+      Tone.Transport.stop();
+    };
+    Tone.Transport.start();
+  }
 
 
 
