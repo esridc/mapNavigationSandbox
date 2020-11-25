@@ -907,55 +907,22 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     place: null
   };
 
-  // key event trapping and mode management for Keyboard Mode
+  // mode management
   function keyboardModeHandler(e) {
-    let { features, feature, featureIndex, modeLevel } = keyboardNavState;
-    // statusAlert('Floor ' + modeLevel + '.');
-    console.log(e.key)
-
-    switch (e.key) {
-      case "Enter": {
-        // Enter: go in one layer
-        handleEnter(modeLevel);
-        break;
-      }
-      case "Escape": {
-        handleEscape(modeLevel);
-        break;
-      }
-      case "Tab": {
-        handleTab(modeLevel);
-        break;
-      }
-      default: {
-        // handleEscape(modeLevel);
-        break;
-      }
-    }
-
-    if (e.key == "Enter") {
-    // Escape: go out one layer
-    } else if (e.key == "Escape") {
-
-    // Tab: move through a linear series
-    } else if (e.key == "Tab") {
-
-    }
-    keyboardNavState = {...keyboardNavState, feature, featureIndex, modeLevel};
-    // prevent standard event behavior
-    if (modeLevel == 0) {
-      e.preventDefault();
-    }
-    modeStatus(modeLevel)
-
+    let { modeLevel } = keyboardNavState;
+    if (modeLevel == "Outer") outerHandler(e);
+    else if (modeLevel == "FeatureSelection") featureSelectionHandler(e);
+    else if (modeLevel == "Feature") featureHandler(e);
+    else if (modeLevel == "Sound") soundHandler(e);
+    else if (modeLevel == "Navigation") navHandler(e);
     return false;
   }
 
-  function handleEnter() {
-    // if on the map container, move down one modal level to feature selection mode
-    if (modeLevel < 1) modeLevel++;
-    // if feature is selected, move down one modal level, move focus to popup div
-    if (modeLevel == 1) {
+  // main keyboardMode menu
+  function outerHandler(e) {
+    if (modeLevel == "outer") modeLevel = "featureSelection";
+
+    if (e.key == "Enter") {
       document.activeElement.blur();
       if (!document.getElementById("popup-content")) {
         // make a popup
@@ -963,6 +930,24 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       document.getElementById("popup-content").focus();
       statusAlert(`Feature #${featureIndex} selected.`)
     }
+  }
+  function featureSelectionHandler(e) {
+    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
+  }
+  function featureHandler(e) {
+    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
+
+  }
+  function soundHandler(e) {
+    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
+  }
+  function navHandler(e) {
+    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
+  }
+  function handleEnter() {
+    // if on the map container, move down one modal level to feature selection mode
+    if (modeLevel < 1) modeLevel++;
+    // if feature is selected, move down one modal level, move focus to popup div
 
   }
 
@@ -1155,6 +1140,7 @@ var count = 0;
       if (!content) {
         return console.log("No popup content")
       }
+      console.log('popup')
       view.popup.open({
         title: content.meta,
         content: content.div,
@@ -1181,10 +1167,10 @@ var count = 0;
           console.log('activate')
           focusStatus('activate');
           // show keyboard mode checkbox
-          const keyboardCheckbox = document.querySelector('#keyboardMode');
+          const keyboardMenu = document.querySelector('#keyboardMode');
           // debugger
-          keyboardCheckbox.classList.remove("hidden");
-          keyboardCheckbox.addEventListener('calciteCheckboxChange', (e) => {
+          keyboardMenu.classList.remove("hidden");
+          document.querySelector('#keyboardModeCheckbox').addEventListener('calciteCheckboxChange', (e) => {
             if (e.target.checked) {
               showKeyboardModeCheckbox(true);
             } else {

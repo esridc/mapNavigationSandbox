@@ -337,9 +337,10 @@ body,
   border: 2px solid gold;
   padding: 10px;
   background: white;
+  font-size: 12px;
 }
 
 #keyStatus, #modeStatus, #focusStatus {
-  border: 2px solid gold;
   padding: 10px;
+  /* margin-left: 20px; */
 }
