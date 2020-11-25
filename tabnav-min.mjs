@@ -912,92 +912,34 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let { features, feature, featureIndex, modeLevel } = keyboardNavState;
     // statusAlert('Floor ' + modeLevel + '.');
     console.log(e.key)
+
+    switch (e.key) {
+      case "Enter": {
+        // Enter: go in one layer
+        handleEnter(modeLevel);
+        break;
+      }
+      case "Escape": {
+        handleEscape(modeLevel);
+        break;
+      }
+      case "Tab": {
+        handleTab(modeLevel);
+        break;
+      }
+      default: {
+        // handleEscape(modeLevel);
+        break;
+      }
+    }
+
     if (e.key == "Enter") {
-      // if on the map container, move down one modal level to feature selection mode
-      if (modeLevel < 1) modeLevel++;
-      // if feature is selected, move down one modal level, move focus to popup div
-      if (modeLevel == 1) {
-        document.activeElement.blur();
-        document.getElementById("popup-content").focus();
-        // document.getElementsByClassName("esri-popup")[0].focus();
-        console.log('focused?', document.activeElement)
-        statusAlert(`Feature #${featureIndex} selected.`)
-      }
+    // Escape: go out one layer
     } else if (e.key == "Escape") {
-      // if feature is selected, move up one modal level to the container
-      // if inside a popup, move up one modal level to feature selection mode
-      if (modeLevel > -3) {
-        modeLevel--;
-      }
 
-      if (modeLevel == -1) {
-        document.activeElement.blur();
-        document.getElementsByClassName("esri-popup")[0].focus();
-        document.querySelector('#keyboardMode');
-        document.querySelector('#keyboardMode').getElementsByTagName('calcite-checkbox')[0].checked = false;
-        document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
-        state.view.popup.close();
-      }
-
-      if (modeLevel == 0) {
-        document.activeElement.blur();
-        statusAlert("Leaving feature. Feature selection.")
-      }
-    // main navigation
+    // Tab: move through a linear series
     } else if (e.key == "Tab") {
-      // if the keyboardMode context div is not selected, there has been mouse interaction -
-      // move focus to the context div and select the last selected feature
-      if (modeLevel == -1) {
-        return;
-        // return e.preventDefault();
-      }
-      if (modeLevel == 1) {
-        console.log('tab through popup', document.activeElement)
-        return;
-        // return e.preventDefault();
-      }
 
-      if (e.shiftKey) {
-        console.log('keyboardModeHandler shift-tab')
-        // if no feature selected, select the last feature
-        if (featureIndex < 0) {
-
-        }
-
-        if (!feature) {
-          featureIndex = 0;
-          feature = features[0];
-          selectFeature(feature);
-        }
-        // if the first feature is selected, move focus to the keyboardMode checkbox
-        else if (featureIndex == 0) {
-        }
-        // if a feature is selected, select the previous feature
-        else {
-          featureIndex--;
-          feature = features[featureIndex];
-          selectFeature(feature);
-        }
-      } else {
-        // console.log('keyboardModeHandler normal tab')
-        // if no feature selected, select the first feature
-        if (!feature) {
-          featureIndex = 0;
-          feature = features[0];
-          selectFeature(feature);
-        }
-        // if the last feature is selected, leave current feature selected but move focus to the next ui checkbox
-        else if (featureIndex == features.length-1) {
-        }
-        // if a feature is selected, select the next feature
-        else {
-          featureIndex++;
-          feature = features[featureIndex];
-          selectFeature(feature);
-          // sound.stop();
-          // sound.start();
-        }
-      }
     }
     keyboardNavState = {...keyboardNavState, feature, featureIndex, modeLevel};
     // prevent standard event behavior
@@ -1007,6 +949,106 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     modeStatus(modeLevel)
 
     return false;
+  }
+
+  function handleEnter() {
+    // if on the map container, move down one modal level to feature selection mode
+    if (modeLevel < 1) modeLevel++;
+    // if feature is selected, move down one modal level, move focus to popup div
+    if (modeLevel == 1) {
+      document.activeElement.blur();
+      if (!document.getElementById("popup-content")) {
+        // make a popup
+      }
+      document.getElementById("popup-content").focus();
+      statusAlert(`Feature #${featureIndex} selected.`)
+    }
+
+  }
+
+  function handleEscape() {
+    if (!modeLevel && document.getElementsByClassName("esri-popup")[0]) {
+      state.view.popup.close();
+    }
+    if (modeLevel > -3) {
+      modeLevel--;
+    }
+
+    // if feature is selected, move up one modal level to the map and turn off keyboardMode
+    if (modeLevel == -1) {
+      document.activeElement.blur();
+      document.getElementsByClassName("esri-popup")[0].focus();
+      document.querySelector('#keyboardMode');
+      document.querySelector('#keyboardMode').getElementsByTagName('calcite-checkbox')[0].checked = false;
+      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
+      state.view.popup.close();
+    }
+
+    // if inside a popup, move up one modal level to feature selection mode
+    if (modeLevel == 0) {
+      document.activeElement.blur();
+      statusAlert("Leaving feature. Feature selection.")
+    }
+
+  }
+
+  function handleTab() {
+    // if the keyboardMode context div is not selected, there has been mouse interaction -
+    // move focus to the context div and select the last selected feature
+    if (modeLevel == -1) {
+      return;
+      // return e.preventDefault();
+    }
+    if (modeLevel == 1) {
+      console.log('tab through popup', document.activeElement)
+      return;
+      // return e.preventDefault();
+    }
+
+    // Shift-Tab: move backward through the series
+    if (e.shiftKey) {
+      console.log('keyboardModeHandler shift-tab')
+      // if no feature selected, select the last feature
+      if (featureIndex < 0) {
+
+      }
+
+      if (!feature) {
+        featureIndex = 0;
+        feature = features[0];
+        selectFeature(feature);
+      }
+      // if the first feature is selected, move focus to the keyboardMode checkbox
+      else if (featureIndex == 0) {
+      }
+      // if a feature is selected, select the previous feature
+      else {
+        featureIndex--;
+        feature = features[featureIndex];
+        selectFeature(feature);
+      }
+
+    // Tab: move forward through a series
+    } else {
+      // console.log('keyboardModeHandler normal tab')
+      // if no feature selected, select the first feature
+      if (!feature) {
+        featureIndex = 0;
+        feature = features[0];
+        selectFeature(feature);
+      }
+      // if the last feature is selected, leave current feature selected but move focus to the next ui checkbox
+      else if (featureIndex == features.length-1) {
+      }
+      // if a feature is selected, select the next feature
+      else {
+        featureIndex++;
+        feature = features[featureIndex];
+        selectFeature(feature);
+        // sound.stop();
+        // sound.start();
+      }
+    }
   }
 
   window.requests = [];
