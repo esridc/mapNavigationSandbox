@@ -19,9 +19,122 @@
   <title>Tab Navigation Demo</title>
   <link href="tabnav-min.css" rel="stylesheet">
 
+  <!-- <script src="https://unpkg.com/lodash@4.17.15/lodash.js"></script> -->
+  <!-- <script src="lodash.js"></script> -->
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.68/Tone.js'></script>
+
+  <!-- <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/css/calcite-web.min.css"> -->
+  <!-- <script src="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/js/calcite-web.min.js"></script> -->
+
+  <!-- calcite components -->
+  <script
+  type="module"
+  src="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.esm.js"
+></script>
+<script
+  nomodule=""
+  src="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.js"
+></script>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.css"
+/>
+
+  <!-- 3rd party libraries -->
+  <script src="https://d3js.org/d3.v4.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/autocomplete.js/0/autocomplete.min.js"></script>
+
   <script type="module" src="soundtest.mjs"></script>
 </head>
 
 <body>
+  <!-- <div id="sidebar" tabindex="1">
+    <div id="sidebarItems">
+
+      <select id="datasetList"></select>
+      <div id="datasetName" ></div>
+      <div>
+        <span id="orgName"></span>
+        <span id="recordCount"></span>
+      </div>
+
+      <div class="section">
+        <span class="sectionHead">Filters:</span>
+        <span id="filtersCount"></span>
+
+        <div id="filtersList">
+        </div>
+        <span id="label">Filter <span id="featuresCount"></span> features:</span>
+        <calcite-input type="search" scale="s" id="filterAttributeSearch" placeholder="Search Attributes by Name" aria-label="Search attributes"></calcite-input>
+
+        <div id="filterAttributeList">
+        </div>
+      </div>
+
+      <div class="section">
+        <span id="label">Style by Attribute:</span>
+        <calcite-input type="search" scale="s" id="styleAttributeSearch" placeholder="Search Attributes by Name" aria-label="Search stories"></calcite-input>
+        <div id="styleAttributeList">
+        </div>
+      </div>
+
+    </div>
+  </div> -->
+  <div id="viewDiv" tabindex="0" aria-label="Map"></div>
+  <div id="zoomToData" class="esri-widget">
+    <label>
+      <calcite-checkbox checked="true"></calcite-checkbox>Zoom to data
+    </label>
+  </div>
+  <!-- <div id="darkMode" class="esri-widget">
+    <label>
+      <calcite-checkbox checked="false"></calcite-checkbox>Dark mode
+    </label>
+  </div>
+  <div id="labels" class="esri-widget">
+    <label>
+      <calcite-checkbox checked="false"></calcite-checkbox>Force labels
+    </label>
+  </div> -->
+  <div id="keyboardMode" class="esri-widget, hidden">
+    <calcite-checkbox tabindex="0" aria-labelledby="keyboardModeLabel"></calcite-checkbox>
+      <label id="keyboardModeLabel">Keyboard mode</label>
+    <calcite-checkbox tabindex="0" aria-labelledby="SoundModeLabel"></calcite-checkbox>
+      <label id="SoundModeLabel">Sound mode</label>
+  </div>
+  <div id="status">
+    <div>
+      Focus:
+      <div id="focusStatus">focusStatus</div>
+    </div>
+    <div>
+      Key:
+      <div id="keyStatus">keyStatus</div>
+    </div>
+    <div>
+      Mode:
+      <div id="modeStatus">modeStatus</div>
+    </div>
+  </div>
+  <div id="keyboardModeAlert" role="alert">
+    Top level.
+  </div>
+
+  <!-- popup content template -->
+  <div style="position: absolute; visibility: hidden" id="popup-content-template">
+    <h3 id="placeLabel"></h3>
+    <table id="popupTable" aria-label='Feature Attributes'>
+      <thead>
+        <tr>
+          <th role='columnheader'>Attribute Name</th>
+          <th role='columnheader'>Attribute Value</th>
+        </tr>
+      </thead>
+
+    </table>
+  </div>
+
 </body>
 </html>

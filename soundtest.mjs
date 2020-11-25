@@ -1,6 +1,6 @@
 
 import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/dist/esm/esri-loader.js';
-import { default as sound } from '/sound.js';
+// import { default as sound } from '/sound.js';
 
 (async () => {
 
@@ -28,6 +28,7 @@ import { default as sound } from '/sound.js';
   cimSymbolUtils,
   Popup,
   PopupTemplate,
+  esriRequest,
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
@@ -42,8 +43,10 @@ import { default as sound } from '/sound.js';
   "esri/views/support/colorUtils",
   "esri/layers/support/LabelClass",
   "esri/symbols/CIMSymbol",
+  "esri/symbols/support/cimSymbolUtils",
   "esri/widgets/Popup",
   "esri/PopupTemplate",
+  "esri/request",
 ]);
 
   // data urls
@@ -140,17 +143,17 @@ import { default as sound } from '/sound.js';
       updateLayerViewEffect();
     });
 
-    view.ui.add('darkMode', 'top-right');
-    darkModeCheckbox.addEventListener('calciteCheckboxChange', async () => {
-      state.view = await drawMap();
-      autoStyle({fieldName: state.fieldName})
-    });
+    // view.ui.add('darkMode', 'top-right');
+    // darkModeCheckbox.addEventListener('calciteCheckboxChange', async () => {
+    //   state.view = await drawMap();
+    //   autoStyle({fieldName: state.fieldName})
+    // });
 
-    view.ui.add('labels', 'top-right');
-    const labelsCheckbox = document.querySelector('#labels calcite-checkbox');
-    labelsCheckbox.addEventListener('calciteCheckboxChange', () => {
-      autoStyle({fieldName: state.fieldName})
-    });
+    // view.ui.add('labels', 'top-right');
+    // const labelsCheckbox = document.querySelector('#labels calcite-checkbox');
+    // labelsCheckbox.addEventListener('calciteCheckboxChange', () => {
+    //   autoStyle({fieldName: state.fieldName})
+    // });
 
 
     // put vars on window for debugging
@@ -169,7 +172,52 @@ import { default as sound } from '/sound.js';
   }
 
 
-  
+  async function loadDataset (args) {
+    // reset state
+    initState();
+    var dataset, layer;
+    if (args.url) { // dataset url provided directly
+      const datasetURL = args.url;
+      try {
+        // dataset = (await fetch(datasetURL).then(r => r.json()));
+        dataset = {attributes: {url: args.url}}
+      } catch(e) { console.log('failed to load dataset from url:', args.url, e); }
+    } else if (args.datasetId) { // dataset id provided directly
+      // https://opendataqa.arcgis.com/api/v3/datasets/97a641ac39904f349fb5fc25b94207f6
+      const datasetURL = `https://opendata${args.env === 'qa' ? 'qa' : ''}.arcgis.com/api/v3/datasets/${args.datasetId}`;
+      try {
+        dataset = (await fetch(datasetURL).then(r => r.json())).data;
+      } catch(e) { console.log('failed to load dataset from id', args.datasetId, e); }
+    } else if (args.datasetSlug) { // dataset slug provided as alternate
+      // https://opendata.arcgis.com/api/v3/datasets?filter%5Bslug%5D=kingcounty%3A%3Aphoto-centers-for-2010-king-county-orthoimagery-project-ortho-image10-point
+      const filter = `${encodeURIComponent('filter[slug]')}=${encodeURIComponent(args.datasetSlug)}`
+      const datasetURL = `https://opendata${args.env === 'qa' ? 'qa' : ''}.arcgis.com/api/v3/datasets?${filter}`;
+      try {
+        dataset = (await fetch(datasetURL).then(r => r.json())).data[0];
+      } catch(e) { console.log('failed to load dataset from slug', args.datasetSlug, e); }
+    }
+    // initialize a new layer
+    const url = dataset.attributes.url;
+    layer = new FeatureLayer({
+      renderer: {type: 'simple'},
+      url,
+      minScale: 0,
+      maxScale: 0,
+    });
+    layer.popupTemplate = {
+      title: "Popup Template Title",
+      content: "Popup Template Content? {sensorName}"
+    }
+    // update state
+    state = {...state, layer, dataset};
+
+
+    state.usePredefinedStyle = false; // disable for now
+    // draw map once before autoStyling because getBgColor() requires an initialized layerView object
+    state.view = await drawMap();
+    autoStyle({});  // guess at a style for this field
+  }
+
   // https://stackoverflow.com/questions/6122571/simple-non-secure-hash-function-for-javascript
   function getHash(s) {
     var hash = 0;
@@ -803,17 +851,22 @@ import { default as sound } from '/sound.js';
   //
   var keyboardModeActive = false;
 
-  function showKeyboardModeCheckbox(value) {
+  async function showKeyboardModeCheckbox(value) {
     let { view, layer } = state;
     console.log('showKeyboardModeCheckbox', value)
     keyboardModeActive = value;
     if (!keyboardModeActive) {
+      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off."
       console.log('keyboardMode off');
       window.removeEventListener('keydown', keyboardModeHandler);
       return;
     } else {
       console.log('keyboardMode on');
+      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode on."
       var keyboardModeKeydownListener = window.addEventListener('keydown', keyboardModeHandler);
+      if (!view) {
+        view = await drawMap();
+      }
       view.whenLayerView(layer).then(async function(layerView) {
         layerView.watch("updating", function(value) {
           if (!value) {
@@ -828,13 +881,15 @@ import { default as sound } from '/sound.js';
               .then(function(results) {
                 // do something with the resulting graphics
                 let graphics = results.features;
-                console.log(graphics)
+                // console.log(graphics)
               });
           }
         });
         var features = (await state.layer.queryFeatures()).features;
+        features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
+
         // debugger
-        keyboardNavState = {
+        keyboardNavState = {...keyboardNavState,
           features,
           feature: features[0],
           featureIndex: 0
@@ -848,72 +903,238 @@ import { default as sound } from '/sound.js';
     features: null,
     feature: null,
     featureIndex: null,
+    modeLevel: 0,
+    place: null
   };
 
+  // key event trapping and mode management for Keyboard Mode
   function keyboardModeHandler(e) {
-    let { features, feature, featureIndex } = keyboardNavState;
+    let { features, feature, featureIndex, modeLevel } = keyboardNavState;
+    // statusAlert('Floor ' + modeLevel + '.');
     console.log(e.key)
-    if (e.key == "Escape") {
-      // if feature is selected, leave selection and move focus to keyboardMode div
-    } else {
-    }
-    if (e.key == "Tab") {
-      console.log('keyboardModeHandler tab')
-      // if the keyboardMode context div is not selected, there has been mouse interaction -
-      // move focus to the context div and select the last selected feature
 
-
-      // if (document.activeElement == document.getElementById('viewDiv')) {
-      //   // show keyboard mode checkbox
-      // } else {
-      //   console.log('something weird happened')
-      // }
-
-      if (e.shiftKey) {
-        console.log('keyboardModeHandler shift-tab')
-        // if no feature selected, select the last feature
-        if (!feature) {
-          featureIndex = 0;
-          feature = features[0];
-          selectFeature(feature);
-        }
-        // if the first feature is selected, move focus to the keyboardMode checkbox
-        else if (featureIndex == 0) {
-        }
-        // if a feature is selected, select the previous feature
-        else {
-          featureIndex--;
-          feature = features[featureIndex];
-          selectFeature(feature);
-        }
-      } else {
-        console.log('keyboardModeHandler normal tab')
-        // if no feature selected, select the first feature
-        if (!feature) {
-          featureIndex = 0;
-          feature = features[0];
-          selectFeature(feature);
-        }
-        // if the last feature is selected, leave current feature selected but move focus to the next ui checkbox
-        else if (featureIndex == features.length-1) {
-        }
-        // if a feature is selected, select the next feature
-        else {
-          featureIndex++;
-          feature = features[featureIndex];
-          selectFeature(feature);
-          sound.start();
-        }
+    switch (e.key) {
+      case "Enter": {
+        // Enter: go in one layer
+        handleEnter(modeLevel);
+        break;
+      }
+      case "Escape": {
+        handleEscape(modeLevel);
+        break;
+      }
+      case "Tab": {
+        handleTab(modeLevel);
+        break;
+      }
+      default: {
+        // handleEscape(modeLevel);
+        break;
       }
     }
-    keyboardNavState = {...keyboardNavState, feature, featureIndex};
+
+    if (e.key == "Enter") {
+    // Escape: go out one layer
+    } else if (e.key == "Escape") {
+
+    // Tab: move through a linear series
+    } else if (e.key == "Tab") {
+
+    }
+    keyboardNavState = {...keyboardNavState, feature, featureIndex, modeLevel};
     // prevent standard event behavior
-    e.preventDefault();
+    if (modeLevel == 0) {
+      e.preventDefault();
+    }
+    modeStatus(modeLevel)
+
     return false;
   }
 
-  function selectFeature(feature) {
-    let {view, layer} = state;
+  function handleEnter() {
+    // if on the map container, move down one modal level to feature selection mode
+    if (modeLevel < 1) modeLevel++;
+    // if feature is selected, move down one modal level, move focus to popup div
+    if (modeLevel == 1) {
+      document.activeElement.blur();
+      if (!document.getElementById("popup-content")) {
+        // make a popup
+      }
+      document.getElementById("popup-content").focus();
+      statusAlert(`Feature #${featureIndex} selected.`)
+    }
+
+  }
+
+  function handleEscape() {
+    if (!modeLevel && document.getElementsByClassName("esri-popup")[0]) {
+      state.view.popup.close();
+    }
+    if (modeLevel > -3) {
+      modeLevel--;
+    }
+
+    // if feature is selected, move up one modal level to the map and turn off keyboardMode
+    if (modeLevel == -1) {
+      document.activeElement.blur();
+      document.getElementsByClassName("esri-popup")[0].focus();
+      document.querySelector('#keyboardMode');
+      document.querySelector('#keyboardMode').getElementsByTagName('calcite-checkbox')[0].checked = false;
+      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
+      state.view.popup.close();
+    }
+
+    // if inside a popup, move up one modal level to feature selection mode
+    if (modeLevel == 0) {
+      document.activeElement.blur();
+      statusAlert("Leaving feature. Feature selection.")
+    }
+
+  }
+
+  function handleTab() {
+    // if the keyboardMode context div is not selected, there has been mouse interaction -
+    // move focus to the context div and select the last selected feature
+    if (modeLevel == -1) {
+      return;
+      // return e.preventDefault();
+    }
+    if (modeLevel == 1) {
+      console.log('tab through popup', document.activeElement)
+      return;
+      // return e.preventDefault();
+    }
+
+    // Shift-Tab: move backward through the series
+    if (e.shiftKey) {
+      console.log('keyboardModeHandler shift-tab')
+      // if no feature selected, select the last feature
+      if (featureIndex < 0) {
+
+      }
+
+      if (!feature) {
+        featureIndex = 0;
+        feature = features[0];
+        selectFeature(feature);
+      }
+      // if the first feature is selected, move focus to the keyboardMode checkbox
+      else if (featureIndex == 0) {
+      }
+      // if a feature is selected, select the previous feature
+      else {
+        featureIndex--;
+        feature = features[featureIndex];
+        selectFeature(feature);
+      }
+
+    // Tab: move forward through a series
+    } else {
+      // console.log('keyboardModeHandler normal tab')
+      // if no feature selected, select the first feature
+      if (!feature) {
+        featureIndex = 0;
+        feature = features[0];
+        selectFeature(feature);
+      }
+      // if the last feature is selected, leave current feature selected but move focus to the next ui checkbox
+      else if (featureIndex == features.length-1) {
+      }
+      // if a feature is selected, select the next feature
+      else {
+        featureIndex++;
+        feature = features[featureIndex];
+        selectFeature(feature);
+        // sound.stop();
+        // sound.start();
+      }
+    }
+  }
+
+  window.requests = [];
+var count = 0;
+
+  function popupContent(feature) {
+    // Abort any outstanding requests
+    if (requests.length > 0) {
+      // (At the moment there's no code path to > 1 request, but there was once, and may be later)
+      requests.map((r, i) => {
+        // Abort requests that are aware of the controller's signal
+        r.controller.abort();
+      })
+      // reset requests stack
+      requests = [];
+    }
+    keyboardNavState.place = null;
+
+    var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
+    var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
+
+    let template = document.getElementById('popup-content-template');
+    console.log('template:', template)
+    let div = template.cloneNode(true);
+    template.parentElement.appendChild(div);
+
+    if (!div) {
+      return console.log('No popup content div')
+    }
+    div.setAttribute('id', 'popup-content');
+    div.setAttribute('style', '');
+
+    var atts = feature.attributes;
+    var keys = Object.keys(atts);
+    var vals = Object.values(atts);
+    let controller = new AbortController();
+    let signal = controller.signal;
+    count++;
+    requests.push({
+      controller,
+      count
+    });
+
+    esriRequest(url, {
+      signal,
+      responseType: "json"
+    }).then(function(response){
+      // console.log('queue:', requests.map(r => r.count))
+      // The requested data
+      var geoJson = response.data;
+      // track this in state so the popup knows whether to cancel any outstanding requests
+      keyboardNavState.place = geoJson.address.LongLabel;
+      document.getElementById('placeLabel').innerHTML = geoJson.address.LongLabel;
+    }).catch((err) => {
+      if (err.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        console.error('Error encountered', err);
+      }
+    });
+
+    div.innerHTML += `${keys.length} feature attributes:`;
+    let table = div.querySelector('#popupTable');
+    table.setAttribute('tabindex', '0');
+    var td;
+    for (var x=0; x<keys.length; x++) {
+      let row = table.insertRow();
+      td = document.createElement('td');
+      td.innerText = `${keys[x]}`
+      td.setAttribute('tabindex', '0');
+      row.appendChild(td);
+
+      td = document.createElement('td');
+      td.innerText = `${vals[x]}`
+      td.setAttribute('tabindex', '0');
+      row.appendChild(td);
+    }
+    let meta = `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`;
+    return {div, meta};
+  }
+
+  async function selectFeature(feature) {
+    if (!feature) {
+      return console.log("No feature selected")
+    }
+  let {view, layer} = state;
     view.whenLayerView(layer).then(async function(layerView) {
       var objectId = feature.attributes.FID;
 
@@ -921,56 +1142,93 @@ import { default as sound } from '/sound.js';
         highlight.remove();
       }
       highlight = layerView.highlight([objectId]);
+      view.popup.watch("visible", (e) => {
+        // console.log('popup visible?', e)
+        if (document.getElementById("popup-content")) {
+          document.activeElement.blur();
+          document.getElementById("popup-content").focus();
+          console.log('focused:', document.activeElement)
+        } else {
+          // console.log('no popup', e)
+        }
+      });
+      let content = popupContent(feature);
+      if (!content) {
+        return console.log("No popup content")
+      }
       view.popup.open({
-        // Set the popup's title to the coordinates of the clicked location
-        title: `${keyboardNavState.featureIndex}: ${feature.attributes.sensorName}`,
+        title: content.meta,
+        content: content.div,
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
       });
+      statusAlert('Popup: '+content.meta);
     });
   }
 
   // TESTS
-  // loadDataset({env: "prod", datasetId:"8581a7460e144ae09ad25d47f8e82af8_0"});
+  loadDataset({env: "prod", datasetId:"8581a7460e144ae09ad25d47f8e82af8_0"});
 
-  // set up global keydown listener
-  var keydownListener = window.addEventListener('keydown', (e) => {
-    // console.log(e.key)
-    if (e.key == "Tab" && !keyboardModeActive) {
-      if (document.activeElement == document.getElementById('viewDiv')) {
-        console.log('activate')
-        // show keyboard mode checkbox
-        const keyboardCheckbox = document.querySelector('#keyboardMode');
-        // debugger
-        keyboardCheckbox.classList.remove("hidden");
-        keyboardCheckbox.addEventListener('calciteCheckboxChange', (e) => {
-          if (e.target.checked) {
-            showKeyboardModeCheckbox(true);
-          } else {
-            showKeyboardModeCheckbox(false);
+  // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
+  var keydownListener = window.addEventListener('keydown', async e => {
+    let el = document.activeElement;
+    focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
+    keyStatus(nameKeyCombo(e));
+
+    // activate keyboardMode when tabbing into map
+    if (!keyboardModeActive) {
+      if (e.key == "Tab") {
+        if (document.activeElement == document.getElementById('viewDiv')) {
+          console.log('activate')
+          focusStatus('activate');
+          // show keyboard mode checkbox
+          const keyboardCheckbox = document.querySelector('#keyboardMode');
+          // debugger
+          keyboardCheckbox.classList.remove("hidden");
+          keyboardCheckbox.addEventListener('calciteCheckboxChange', (e) => {
+            if (e.target.checked) {
+              showKeyboardModeCheckbox(true);
+            } else {
+              showKeyboardModeCheckbox(false);
+            }
+          });
+          if (!state.view) {
+            state.view = await drawMap();
           }
-        });
-        state.view.ui.add('keyboardMode', 'top-left');
-      }
-      if (e.shiftKey) {
-        console.log('keydownListener shift-tab')
-        // attributeList.previousElementSibling.focus();
-      } else {
-        console.log('keydownListener tab')
-        // attributeList.nextElementSibling.focus();
+          state.view.ui.add('keyboardMode', 'top-left');
+        } else {
+          // e.preventDefault();
+        }
       }
     }
-    if (e.key == " ") {
-      console.log('space')
-      sound.start();
-    }
-
     // fix browser reloading when tabbing to the page when map has focus
     if (e.key == "r" && e.metaKey && e.shiftKey) {
       location.reload(true);
     }
   });
 
-  // console.log('sound?', sound)
-})();
+  function nameKeyCombo(e) {
+    let keyName = "";
+    switch (e.key) {
+      case " ":
+        keyName = "space"; break;
+      case "Meta":
+        keyName = ""; break;
+      case "Shift":
+        keyName = ""; break;
+      default:
+        keyName = e.key;
+    }
+    return (e.metaKey ? "cmd " : "") + (e.shiftKey ? "shift " : "") + keyName;
+  }
+  function focusStatus(msg) { document.getElementById("focusStatus").innerHTML = msg; }
+  function keyStatus(msg) { document.getElementById("keyStatus").innerHTML = msg; }
+  function modeStatus(msg) {
+    document.getElementById("modeStatus").innerHTML = msg;
+    // statusAlert('Floor ' + keyboardNavState.modeLevel + '.');
+  }
+  function statusAlert(msg) { document.getElementById("keyboardModeAlert").innerHTML = msg; }
 
+
+
+})();
