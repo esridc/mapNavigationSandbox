@@ -98,12 +98,25 @@
       <calcite-checkbox checked="false"></calcite-checkbox>Force labels
     </label>
   </div> -->
-  <div id="keyboardMode" class="esri-widget, hidden">
+
+  <div id="keyboardModeMenu" class="esri-widget, hidden">
+
     <calcite-checkbox tabindex="0" id="keyboardModeCheckbox" aria-labelledby="keyboardModeLabel"></calcite-checkbox>
       <label id="keyboardModeLabel">Keyboard mode</label>
-    <calcite-checkbox tabindex="0" id="soundModeCheckbox" aria-labelledby="SoundModeLabel"></calcite-checkbox>
-      <label id="SoundModeLabel">Sound mode</label>
+    <calcite-button tabindex="0" id="featureSelectionModeButton" aria-labelledby="featureSelectionModeLabel"></calcite-button>
+      <label id="featureSelectionModeLabel">Feature selection mode</label>
+    <calcite-button tabindex="0" id="featureModeButton" aria-labelledby="featureModeLabel"></calcite-button>
+      <label id="featureModeLabel">Feature mode</label>
+    <calcite-dropdown tabindex="0" id="verbosityDropdown" aria-labelledby="verbosityLabel"></calcite-dropdown>
+      <label id="verbosityLabel">Verbosity</label>
+    <calcite-checkbox tabindex="0" id="sonarModeCheckbox" aria-labelledby="sonarModeLabel"></calcite-checkbox>
+      <label id="sonarModeLabel">Sonar</label>
+    <calcite-button tabindex="0" id="helpButton" aria-labelledby="helpButtonLabel"></calcite-button>
+      <label id="helpButtonLabel">Help</label>
+
   </div>
+
+
   <div id="status">
     <div>
       Focus:

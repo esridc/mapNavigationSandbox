@@ -1167,9 +1167,10 @@ var count = 0;
           console.log('activate')
           focusStatus('activate');
           // show keyboard mode checkbox
-          const keyboardMenu = document.querySelector('#keyboardMode');
-          // debugger
+          const keyboardMenu = document.querySelector('#keyboardModeMenu');
           keyboardMenu.classList.remove("hidden");
+
+          // bind events for keyboard mode menu options
           document.querySelector('#keyboardModeCheckbox').addEventListener('calciteCheckboxChange', (e) => {
             if (e.target.checked) {
               showKeyboardModeCheckbox(true);
@@ -1177,10 +1178,27 @@ var count = 0;
               showKeyboardModeCheckbox(false);
             }
           });
+          document.querySelector('#featureSelectionModeButton').addEventListener('click', (e) => {
+            console.log('feature selection mode activated')
+          });
+          document.querySelector('#featureModeButton').addEventListener('click', (e) => {
+            console.log('feature mode activated')
+          });
+          document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
+            console.log('verbosity dropdown')
+          });
+          document.querySelector('#sonarModeCheckbox').addEventListener('click', (e) => {
+            console.log('sonar checkbox')
+          });
+          document.querySelector('#helpButton').addEventListener('click', (e) => {
+            console.log('help button')
+          });
+
+
           if (!state.view) {
             state.view = await drawMap();
           }
-          state.view.ui.add('keyboardMode', 'top-left');
+          state.view.ui.add('keyboardModeMenu', 'top-left');
         } else {
           // e.preventDefault();
         }
@@ -1248,7 +1266,7 @@ var count = 0;
     return notes;
   }
 
-  document.querySelector('#soundModeCheckbox').addEventListener('calciteCheckboxChange', () => {
+  document.querySelector('#sonarModeCheckbox').addEventListener('calciteCheckboxChange', () => {
     setup();
   });
 
