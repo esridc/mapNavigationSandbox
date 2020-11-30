@@ -851,9 +851,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   //
   var keyboardModeActive = false;
 
-  async function showKeyboardModeCheckbox(value) {
+  async function setKeyboardMode(value) {
     let { view, layer } = state;
-    console.log('showKeyboardModeCheckbox', value)
+    console.log('setKeyboardMode', value)
     keyboardModeActive = value;
     if (!keyboardModeActive) {
       document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off."
@@ -862,7 +862,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       return;
     } else {
       console.log('keyboardMode on');
-      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode on."
+      statusAlert('KeyboardMode on.');
       var keyboardModeKeydownListener = window.addEventListener('keydown', keyboardModeHandler);
       if (!view) {
         view = await drawMap();
@@ -894,7 +894,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           feature: features[0],
           featureIndex: 0
         };
-        selectFeature(features[0]);
+        // // select the first feature
+        // selectFeature(features[0]);
       });
     }
   }
@@ -963,7 +964,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     if (modeLevel == -1) {
       document.activeElement.blur();
       document.getElementsByClassName("esri-popup")[0].focus();
-      document.querySelector('#keyboardModeCheckbox').checked = false;
       document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
       state.view.popup.close();
     }
@@ -1156,8 +1156,6 @@ var count = 0;
 
   // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
   var keydownListener = window.addEventListener('keydown', async e => {
-    let el = document.activeElement;
-    focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
     keyStatus(nameKeyCombo(e));
 
     // activate keyboardMode when tabbing into map
@@ -1170,14 +1168,9 @@ var count = 0;
           const keyboardMenu = document.querySelector('#keyboardModeMenu');
           keyboardMenu.classList.remove("hidden");
 
+          setKeyboardMode(true);
+
           // bind events for keyboard mode menu options
-          document.querySelector('#keyboardModeCheckbox').addEventListener('calciteCheckboxChange', (e) => {
-            if (e.target.checked) {
-              showKeyboardModeCheckbox(true);
-            } else {
-              showKeyboardModeCheckbox(false);
-            }
-          });
           document.querySelector('#featureSelectionModeButton').addEventListener('click', (e) => {
             console.log('feature selection mode activated')
           });
@@ -1187,7 +1180,7 @@ var count = 0;
           document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
             console.log('verbosity dropdown')
           });
-          document.querySelector('#sonarModeCheckbox').addEventListener('click', (e) => {
+          document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
             console.log('sonar checkbox')
           });
           document.querySelector('#helpButton').addEventListener('click', (e) => {
@@ -1208,6 +1201,11 @@ var count = 0;
     if (e.key == "r" && e.metaKey && e.shiftKey) {
       location.reload(true);
     }
+  });
+
+  var keydownListener = window.addEventListener('keyup', () => {
+    let el = document.activeElement;
+    focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
   });
 
   function nameKeyCombo(e) {

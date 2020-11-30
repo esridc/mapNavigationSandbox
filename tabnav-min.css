@@ -99,10 +99,6 @@ body,
   margin: 12px 0px;
 }
 
-*:focus {
-   outline: none !important;
-}
-
 .histogramWidget {
   height: 80px;
   width: 90%;
@@ -343,4 +339,13 @@ body,
 #keyStatus, #modeStatus, #focusStatus {
   padding: 10px;
   /* margin-left: 20px; */
+}
+
+#keyboardModeMenu {
+  outline: 2px solid gray;
+  padding: 4px;
+}
+
+#keyboardModeMenu > button {
+  height: 15px;
 }
