@@ -1,4 +1,3 @@
-
 import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/dist/esm/esri-loader.js';
 // import { default as sound } from '/sound.js';
 
@@ -216,6 +215,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // draw map once before autoStyling because getBgColor() requires an initialized layerView object
     state.view = await drawMap();
     autoStyle({});  // guess at a style for this field
+
+    setKeyboardMode(true);
+    // setMode('sound')
+
+
   }
 
   // https://stackoverflow.com/questions/6122571/simple-non-secure-hash-function-for-javascript
@@ -850,19 +854,53 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // KEYBOARD NAVIGATION MODE
   //
 
+  function initKeyboardMode() {
+    // bind events for keyboard mode menu options
+    document.querySelector('#featureSelectionModeButton').addEventListener('click', (e) => {
+      setMode("featureSelection", featureIndex);
+      console.log('feature selection mode activated');
+      selectFeature(featureIndex || 0)
+    });
+    document.querySelector('#featureModeButton').addEventListener('click', (e) => {
+      setMode("feature");
+      console.log('feature mode activated');
+    });
+    document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
+      // setMode("featureSelection");
+      console.log('verbosity dropdown');
+    });
+    document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
+      setMode("sound");
+      // console.log('sonar checkbox');
+      sonarSetup();
+    });
+    document.querySelector('#helpButton').addEventListener('click', (e) => {
+      setMode("help");
+      console.log('help button');
+    });
+  }
+
   function setMode(mode) {
     keyboardModeState.mode = mode;
     modeStatus(mode);
   }
 
   async function setKeyboardMode(value) {
-    let { view, layer } = state;
+    let { view } = state;
     console.trace('setKeyboardMode', value)
     // keyboard mode on
     if (value) {
+      // show keyboard mode menu
+      const keyboardMenu = document.querySelector('#keyboardModeMenu');
+      keyboardMenu.classList.remove("hidden");
+      state.view.ui.add('keyboardModeMenu', 'top-left');
       console.log('KeyboardMode on.');
       statusAlert('KeyboardMode on.');
+      document.activeElement.blur();
+      keyboardMenu.focus();
+      // debugger
       setMode("menu");
+
       window.addEventListener('keydown', keyboardModeHandler);
       // debugger
       if (!view) {
@@ -873,11 +911,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // keyboard mode off
     } else if (!value) {
       statusAlert('KeyboardMode off.');
+      // hide keyboard mode menu
+      state.view.ui.remove('keyboardModeMenu');
       setMode(null)
+      state.view.popup.close();
       window.removeEventListener('keydown', keyboardModeHandler);
-      const keyboardMenu = document.querySelector('#keyboardModeMenu');
       keyboardMenu.classList.add("hidden");
-      keyboardMenu.focus();
+      document.getElementById('viewDiv').focus();
     }
   }
 
@@ -927,10 +967,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // main keyboardMode menu
   function menuHandler(e) {
     if (e.key == "Escape") {
-      document.activeElement.blur();
-      document.getElementById('viewDiv').focus();
-      state.view.popup.close();
       setKeyboardMode(false);
+    }
+    if (e.key == "Tab") {
+      sonarSetup();
     }
   }
 
@@ -1132,41 +1172,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         if (document.activeElement == document.getElementById('viewDiv')) {
           console.log('activate')
           focusStatus('activate');
-          // show keyboard mode checkbox
-          const keyboardMenu = document.querySelector('#keyboardModeMenu');
-          keyboardMenu.classList.remove("hidden");
-          // setMode("menu");
 
           setKeyboardMode(true);
-
-          // bind events for keyboard mode menu options
-          document.querySelector('#featureSelectionModeButton').addEventListener('click', (e) => {
-            setMode("featureSelection", featureIndex);
-            console.log('feature selection mode activated');
-            selectFeature(featureIndex || 0)
-          });
-          document.querySelector('#featureModeButton').addEventListener('click', (e) => {
-            setMode("feature");
-            console.log('feature mode activated');
-          });
-          document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
-            // setMode("featureSelection");
-            console.log('verbosity dropdown');
-          });
-          document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
-            setMode("sound");
-            console.log('sonar checkbox');
-            sonarSetup();
-          });
-          document.querySelector('#helpButton').addEventListener('click', (e) => {
-            setMode("help");
-            console.log('help button');
-          });
 
           if (!state.view) {
             state.view = await drawMap();
           }
-          state.view.ui.add('keyboardModeMenu', 'top-left');
         } else {
           // e.preventDefault();
         }
@@ -1209,61 +1220,90 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   // TONE.JS SETUP
 
-    // make a pentatonic scale - root is 1, other notes are ratios relative to 1
-    let pentatonic = [1, 1.125, 1.265625, 1.5, 1.6875];
-    let chromatic = [1, 1.059463, 1.122462, 1.189207, 1.259921, 1.334839, 1.414213, 1.498307, 1.587401, 1.681792, 1.781797, 1.887748];
+  // make a pentatonic scale - root is 1, other notes are ratios relative to 1
+  let pentatonic = [1, 1.125, 1.265625, 1.5, 1.6875];
+  let chromatic = [1, 1.059463, 1.122462, 1.189207, 1.259921, 1.334839, 1.414213, 1.498307, 1.587401, 1.681792, 1.781797, 1.887748];
 
-    const panner = new Tone.Panner(1).toDestination();
-    const reverb = new Tone.Reverb(2.4).toDestination();
-    //  panner.pan.rampTo(-1, 0.5);
-    const synth = new Tone.Synth().chain(reverb).toDestination();
+  // const panner = new Tone.Panner(1).toDestination();
+  const reverb = new Tone.Reverb(2.4).toDestination();
+  //  panner.pan.rampTo(-1, 0.5);
+  const synth = new Tone.Synth().chain(reverb).toDestination();
 
-    const osc = new Tone.Oscillator().toDestination();
-    // multiply the output of the signal by 2 using the waveshaper's function
-    const timesTwo = new Tone.WaveShaper((val) => val * 2, 2048).connect(osc.frequency);
-    const signal = new Tone.Signal(440).connect(timesTwo);
+  const osc = new Tone.Oscillator().toDestination();
+  // multiply the output of the signal by 2 using the waveshaper's function
+  const timesTwo = new Tone.WaveShaper((val) => val * 2, 2048).connect(osc.frequency);
+  const signal = new Tone.Signal(440).connect(timesTwo);
+  // create a new sequence, which is automatically connected to Tone.Transport
+  var part = new Tone.Part((time, value) => {
+    synth.triggerAttackRelease(value.note, "16n", time, value.velocity);
+  });
+  // set the starting time of the part
+  part.start(0);
 
   function rand(x) {
     return Math.floor(Math.random()*x);
   }
 
-  function getNotes() {
+  function getNotes(part) {
+    // clear any existing notes
+    part.clear();
     var notes = [];
-    for (var x=0; x < 20; x++) {
+    var max = 200;
+    for (var x=0; x < max; x++) {
       notes.push(
         // 130.813 = C3
-        {time: x/20, note: 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .3}
+        // {time: x/max, note: 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .3}
+        130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1)
         // {time: x/20, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
         // {time: x/10, note: 130.813 * 130.813*Math.random(), velocity: .3}
       )
     };
+    for (let x = 0; x < notes.length; x++) {
+      part.add(notes[x]);
+    }
     return notes;
   }
 
-function sonarSetup() {
+  function sonarSetup() {
+    console.log('sonar start')
+    // getNotes(part);
     Tone.start();
 		// const osc = new Tone.Oscillator({
 		// 	type: "sine",
 		// 	frequency: 440,
 		// 	volume: -16
-		// }).toDestination();
+    // }).toDestination();
+    // osc.start();
+    // const osc = new Tone.Oscillator("F3").toDestination().start();
+    // console.log(osc)
+      // generate 8 random partials
+      // osc.partials = new Array(8).fill().map(() => Math.random());
+      // even shorter - ~~ is bitwise shortcut for Math.floor! o_o
+      // osc.partials = [...Array(8)].map(e=>Math.random());
+      // console.log(osc.partials)
+      // osc.frequency.value = Math.random()*400;
 
-    var part = new Tone.Part(((time, value) => {
-      // console.log('time?', time, value)
-      synth.triggerAttackRelease(value.note, "8n", time, value.velocity);
+    let notes = getNotes(part)
+    var index = 0;
 
-      // console.log(Tone.Transport.state)
-    }), getNotes() ).start(0);
-    console.log(part)
-    // use an array of objects as long as the object has a "time" attribute
+    const osc = new Tone.Oscillator("F3").toDestination().start();
+    let i = setInterval(() => {
+      // osc.frequency.rampTo(notes[index], .01)
+      osc.frequency.value = notes[index]
+      index++;
+    }, 100);
+
+    setTimeout( () => {
+      clearInterval(i);
+      osc.stop();
+    }, 1000);
+
 
     if (Tone.Transport.state == "started") {
-      Tone.Transport.stop();
     };
     Tone.Transport.start();
 
   }
 
-
-
+  initKeyboardMode();
 })();
