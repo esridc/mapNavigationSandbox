@@ -1219,90 +1219,80 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
 
   // TONE.JS SETUP
+  //
+  //
 
   // make a pentatonic scale - root is 1, other notes are ratios relative to 1
   let pentatonic = [1, 1.125, 1.265625, 1.5, 1.6875];
   let chromatic = [1, 1.059463, 1.122462, 1.189207, 1.259921, 1.334839, 1.414213, 1.498307, 1.587401, 1.681792, 1.781797, 1.887748];
 
+  // EFFECTS
+
   // const panner = new Tone.Panner(1).toDestination();
   const reverb = new Tone.Reverb(2.4).toDestination();
   //  panner.pan.rampTo(-1, 0.5);
-  const synth = new Tone.Synth().chain(reverb).toDestination();
 
-  const osc = new Tone.Oscillator().toDestination();
-  // multiply the output of the signal by 2 using the waveshaper's function
-  const timesTwo = new Tone.WaveShaper((val) => val * 2, 2048).connect(osc.frequency);
-  const signal = new Tone.Signal(440).connect(timesTwo);
+  // COMPONENTS
+
+  const synth = new Tone.PolySynth({maxPolyphony: 128}).chain(reverb).toDestination(); // wet
+  // const synth = new Tone.PolySynth({maxPolyphony: 128}).toDestination(); // dry
+
+  // set synth parameters
+  synth.set({
+    envelope: {
+      attack: 0.00001,
+      decay: 0.00001,
+      // sustain: .5,
+      release: 0.001, // fastest release without clicking
+    }
+  });
+
   // create a new sequence, which is automatically connected to Tone.Transport
   var part = new Tone.Part((time, value) => {
     synth.triggerAttackRelease(value.note, "16n", time, value.velocity);
   });
-  // set the starting time of the part
-  part.start(0);
+  part.start(0); // set the starting time of the part
 
   function rand(x) {
     return Math.floor(Math.random()*x);
   }
 
+  // SCORE
+
+  // populate part with notes
   function getNotes(part) {
     // clear any existing notes
     part.clear();
     var notes = [];
-    var max = 200;
+    var max = 100;
     for (var x=0; x < max; x++) {
       notes.push(
         // 130.813 = C3
-        // {time: x/max, note: 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .3}
-        130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1)
-        // {time: x/20, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
-        // {time: x/10, note: 130.813 * 130.813*Math.random(), velocity: .3}
+        // {time: x/max, note: 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .5}
+        // {time: x/max, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
+        {time: x/max, note: 130.813 * 130.813 * Math.random(), velocity: .3}
+
+        // standalone notes
+        // 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1)
       )
     };
     for (let x = 0; x < notes.length; x++) {
       part.add(notes[x]);
     }
-    return notes;
+    // return notes;
   }
 
   function sonarSetup() {
     console.log('sonar start')
-    // getNotes(part);
     Tone.start();
-		// const osc = new Tone.Oscillator({
-		// 	type: "sine",
-		// 	frequency: 440,
-		// 	volume: -16
-    // }).toDestination();
-    // osc.start();
-    // const osc = new Tone.Oscillator("F3").toDestination().start();
-    // console.log(osc)
-      // generate 8 random partials
-      // osc.partials = new Array(8).fill().map(() => Math.random());
-      // even shorter - ~~ is bitwise shortcut for Math.floor! o_o
-      // osc.partials = [...Array(8)].map(e=>Math.random());
-      // console.log(osc.partials)
-      // osc.frequency.value = Math.random()*400;
 
-    let notes = getNotes(part)
-    var index = 0;
-
-    const osc = new Tone.Oscillator("F3").toDestination().start();
-    let i = setInterval(() => {
-      // osc.frequency.rampTo(notes[index], .01)
-      osc.frequency.value = notes[index]
-      index++;
-    }, 100);
-
-    setTimeout( () => {
-      clearInterval(i);
-      osc.stop();
-    }, 1000);
-
+    getNotes(part);
 
     if (Tone.Transport.state == "started") {
+      Tone.Transport.stop();
+    } else {
+      Tone.Transport.start();
     };
-    Tone.Transport.start();
-
   }
 
   initKeyboardMode();
