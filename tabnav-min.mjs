@@ -1066,9 +1066,11 @@ var count = 0;
       requests = [];
     }
     keyboardNavState.place = null;
-
+    console.log('feature?', feature)
     var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
     var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
+    console.log('url:\n', url)
+
 
     let template = document.getElementById('popup-content-template');
     console.log('template:', template)
@@ -1131,6 +1133,7 @@ var count = 0;
   }
 
   async function selectFeature(feature) {
+    console.trace('selectFeature')
     if (!feature) {
       return console.log("No feature selected")
     }

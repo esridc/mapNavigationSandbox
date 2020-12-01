@@ -157,7 +157,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
 
     // put vars on window for debugging
-    Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ generateHistogram, HistogramRangeSlider, uniqueValues });
+    Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ generateHistogram, HistogramRangeSlider, uniqueValues, keyboardModeState });
 
     // Dataset info
     // document.querySelector('#datasetName').innerHTML = dataset.attributes.name;
@@ -849,198 +849,158 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   //
   // KEYBOARD NAVIGATION MODE
   //
-  var keyboardModeActive = false;
+
+  function setMode(mode) {
+    keyboardModeState.mode = mode;
+    modeStatus(mode);
+  }
 
   async function setKeyboardMode(value) {
     let { view, layer } = state;
-    console.log('setKeyboardMode', value)
-    keyboardModeActive = value;
-    if (!keyboardModeActive) {
-      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off."
-      console.log('keyboardMode off');
-      window.removeEventListener('keydown', keyboardModeHandler);
-      return;
-    } else {
-      console.log('keyboardMode on');
+    console.trace('setKeyboardMode', value)
+    // keyboard mode on
+    if (value) {
+      console.log('KeyboardMode on.');
       statusAlert('KeyboardMode on.');
-      var keyboardModeKeydownListener = window.addEventListener('keydown', keyboardModeHandler);
+      setMode("menu");
+      window.addEventListener('keydown', keyboardModeHandler);
+      // debugger
       if (!view) {
         view = await drawMap();
       }
-      view.whenLayerView(layer).then(async function(layerView) {
-        layerView.watch("updating", function(value) {
-          if (!value) {
-            // wait for the layer view to finish updating
 
-            // get all the features available for drawing.
-            layerView
-              .queryFeatures({
-                geometry: view.extent,
-                returnGeometry: true
-              })
-              .then(function(results) {
-                // do something with the resulting graphics
-                let graphics = results.features;
-                // console.log(graphics)
-              });
-          }
-        });
-        var features = (await state.layer.queryFeatures()).features;
-        features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
-
-        // debugger
-        keyboardNavState = {...keyboardNavState,
-          features,
-          feature: features[0],
-          featureIndex: 0
-        };
-        // // select the first feature
-        // selectFeature(features[0]);
-      });
+      updateFeatures();
+    // keyboard mode off
+    } else if (!value) {
+      statusAlert('KeyboardMode off.');
+      setMode(null)
+      window.removeEventListener('keydown', keyboardModeHandler);
+      const keyboardMenu = document.querySelector('#keyboardModeMenu');
+      keyboardMenu.classList.add("hidden");
+      keyboardMenu.focus();
     }
   }
 
-  var keyboardNavState = {
+  async function updateFeatures() {
+    console.log('updating Features')
+    let {view, layer} = state;
+    let layerView = await view.whenLayerView(layer);
+    var features = (await state.layer.queryFeatures()).features;
+    features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
+    keyboardModeState.features = features;
+
+    // // get geometry
+    // layerView
+    //   .queryFeatures({
+    //     geometry: view.extent,
+    //     returnGeometry: true
+    //   })
+    //   .then(function(results) {
+    //     // do something with the resulting graphics
+    //     // let graphics = results.features;
+    //     console.log('setting features')
+    //     keyboardModeState.features = results.features;
+    //   });
+  }
+
+  var keyboardModeState = {
     features: null,
     feature: null,
     featureIndex: null,
-    modeLevel: 0,
+    mode: null,
     place: null
   };
 
-  // mode management
+  // mode event handler
+  // dedicated to Larry Tesler
   function keyboardModeHandler(e) {
-    let { modeLevel } = keyboardNavState;
-    if (modeLevel == "Outer") outerHandler(e);
-    else if (modeLevel == "FeatureSelection") featureSelectionHandler(e);
-    else if (modeLevel == "Feature") featureHandler(e);
-    else if (modeLevel == "Sound") soundHandler(e);
-    else if (modeLevel == "Navigation") navHandler(e);
-    return false;
+    let { mode } = keyboardModeState;
+
+    // pass event to the current mode's keyhandler
+    if (mode == "menu") menuHandler(e);
+    else if (mode == "featureSelection") featureSelectionHandler(e);
+    else if (mode == "feature") featureHandler(e);
+    else if (mode == "sound") soundHandler(e);
+    else if (mode == "help") helpHandler(e);
   }
 
   // main keyboardMode menu
-  function outerHandler(e) {
-    if (modeLevel == "outer") modeLevel = "featureSelection";
-
-    if (e.key == "Enter") {
+  function menuHandler(e) {
+    if (e.key == "Escape") {
       document.activeElement.blur();
-      if (!document.getElementById("popup-content")) {
-        // make a popup
-      }
-      document.getElementById("popup-content").focus();
-      statusAlert(`Feature #${featureIndex} selected.`)
+      document.getElementById('viewDiv').focus();
+      state.view.popup.close();
+      setKeyboardMode(false);
     }
   }
+
+  // featureSelection mode
   function featureSelectionHandler(e) {
-    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
+    var { feature, features, featureIndex, mode } = keyboardModeState;
+    if (e.key == "Tab") {
+      // if the keyboardMode map div is not selected, there has been mouse interaction -
+      // move focus to the context div and select the last selected feature
+      // if (document.activeElement != null) {
+      //   return;
+      //   // return e.preventDefault();
+      // }
+
+      // Shift-Tab: move backward through the series
+      if (e.shiftKey) {
+        // if no feature selected, or the first feature is selected, select the last feature
+        if (!featureIndex || featureIndex == 0) {
+          selectFeature(features.length-1)
+        }
+        // if a feature is selected, select the previous feature
+        else {
+          selectFeature(featureIndex - 1);
+        }
+
+      // Plain Tab: move forward through a series
+      } else {
+        // if no feature selected, select the first feature
+        if (!feature) {
+          selectFeature(0);
+        }
+        // if the last feature is selected, wrap around to first feature
+        else if (featureIndex == features.length-1) {
+          selectFeature(0)
+        }
+        // if a feature is selected, select the next feature
+        else {
+          selectFeature(featureIndex + 1);
+          // sound.stop();
+          // sound.start();
+        }
+      }
+      e.preventDefault();
+      return false;
+    }
+    if (e.key == "Escape") {
+      setMode("menu");
+      document.getElementById('keyboardModeMenu').focus();
+      state.view.popup.close();
+      e.preventDefault();
+    }
   }
+
   function featureHandler(e) {
-    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
-
   }
+
   function soundHandler(e) {
-    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
-  }
-  function navHandler(e) {
-    if (modeLevel == "featureSelection") modeLevel = "featureSelection";
-  }
-  function handleEnter() {
-    // if on the map container, move down one modal level to feature selection mode
-    if (modeLevel < 1) modeLevel++;
-    // if feature is selected, move down one modal level, move focus to popup div
-
   }
 
-  function handleEscape() {
-    if (!modeLevel && document.getElementsByClassName("esri-popup")[0]) {
-      state.view.popup.close();
-    }
-    if (modeLevel > -3) {
-      modeLevel--;
-    }
-
-    // if feature is selected, move up one modal level to the map and turn off keyboardMode
-    if (modeLevel == -1) {
-      document.activeElement.blur();
-      document.getElementsByClassName("esri-popup")[0].focus();
-      document.getElementById("keyboardModeLabel").innerText = "Keyboard mode off";
-      state.view.popup.close();
-    }
-
-    // if inside a popup, move up one modal level to feature selection mode
-    if (modeLevel == 0) {
-      document.activeElement.blur();
-      statusAlert("Leaving feature. Feature selection.")
-    }
-
-  }
-
-  function handleTab() {
-    // if the keyboardMode context div is not selected, there has been mouse interaction -
-    // move focus to the context div and select the last selected feature
-    if (modeLevel == -1) {
-      return;
-      // return e.preventDefault();
-    }
-    if (modeLevel == 1) {
-      console.log('tab through popup', document.activeElement)
-      return;
-      // return e.preventDefault();
-    }
-
-    // Shift-Tab: move backward through the series
-    if (e.shiftKey) {
-      console.log('keyboardModeHandler shift-tab')
-      // if no feature selected, select the last feature
-      if (featureIndex < 0) {
-
-      }
-
-      if (!feature) {
-        featureIndex = 0;
-        feature = features[0];
-        selectFeature(feature);
-      }
-      // if the first feature is selected, move focus to the keyboardMode checkbox
-      else if (featureIndex == 0) {
-      }
-      // if a feature is selected, select the previous feature
-      else {
-        featureIndex--;
-        feature = features[featureIndex];
-        selectFeature(feature);
-      }
-
-    // Tab: move forward through a series
-    } else {
-      // console.log('keyboardModeHandler normal tab')
-      // if no feature selected, select the first feature
-      if (!feature) {
-        featureIndex = 0;
-        feature = features[0];
-        selectFeature(feature);
-      }
-      // if the last feature is selected, leave current feature selected but move focus to the next ui checkbox
-      else if (featureIndex == features.length-1) {
-      }
-      // if a feature is selected, select the next feature
-      else {
-        featureIndex++;
-        feature = features[featureIndex];
-        selectFeature(feature);
-        // sound.stop();
-        // sound.start();
-      }
-    }
+  function helpHandler(e) {
   }
 
   window.requests = [];
-var count = 0;
+  var count = 0;
 
   function popupContent(feature) {
     // Abort any outstanding requests
+    console.log('requests.length:', requests.length)
     if (requests.length > 0) {
+
       // (At the moment there's no code path to > 1 request, but there was once, and may be later)
       requests.map((r, i) => {
         // Abort requests that are aware of the controller's signal
@@ -1049,13 +1009,14 @@ var count = 0;
       // reset requests stack
       requests = [];
     }
-    keyboardNavState.place = null;
+    keyboardModeState.place = null;
+    console.log('feature?', feature)
 
     var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
     var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
+    console.log('url:\n', url)
 
     let template = document.getElementById('popup-content-template');
-    console.log('template:', template)
     let div = template.cloneNode(true);
     template.parentElement.appendChild(div);
 
@@ -1084,7 +1045,7 @@ var count = 0;
       // The requested data
       var geoJson = response.data;
       // track this in state so the popup knows whether to cancel any outstanding requests
-      keyboardNavState.place = geoJson.address.LongLabel;
+      keyboardModeState.place = geoJson.address.LongLabel;
       document.getElementById('placeLabel').innerHTML = geoJson.address.LongLabel;
     }).catch((err) => {
       if (err.name === 'AbortError') {
@@ -1110,15 +1071,22 @@ var count = 0;
       td.setAttribute('tabindex', '0');
       row.appendChild(td);
     }
-    let meta = `Feature #${keyboardNavState.featureIndex} of ${keyboardNavState.features.length}`;
+    let meta = `Feature #${keyboardModeState.featureIndex} of ${keyboardModeState.features.length}`;
     return {div, meta};
   }
 
-  async function selectFeature(feature) {
-    if (!feature) {
-      return console.log("No feature selected")
+  async function selectFeature(index) {
+    console.trace('selectFeature:', index)
+    var {view, layer} = state;
+    var {feature, features} = keyboardModeState;
+    if (!features) {
+      console.error('no features')
+      // debugger
+
     }
-  let {view, layer} = state;
+    feature = features[index];
+    keyboardModeState = {...keyboardModeState, feature, featureIndex: index};
+    // debugger
     view.whenLayerView(layer).then(async function(layerView) {
       var objectId = feature.attributes.FID;
 
@@ -1127,26 +1095,25 @@ var count = 0;
       }
       highlight = layerView.highlight([objectId]);
       view.popup.watch("visible", (e) => {
-        // console.log('popup visible?', e)
         if (document.getElementById("popup-content")) {
           document.activeElement.blur();
           document.getElementById("popup-content").focus();
-          console.log('focused:', document.activeElement)
+          // console.log('focused:', document.activeElement)
         } else {
           // console.log('no popup', e)
         }
       });
       let content = popupContent(feature);
       if (!content) {
-        return console.log("No popup content")
+        console.log("No popup content")
       }
-      console.log('popup')
       view.popup.open({
         title: content.meta,
         content: content.div,
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
       });
+      // debugger
       statusAlert('Popup: '+content.meta);
     });
   }
@@ -1156,10 +1123,11 @@ var count = 0;
 
   // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
   var keydownListener = window.addEventListener('keydown', async e => {
+    let {mode, featureIndex} = keyboardModeState;
     keyStatus(nameKeyCombo(e));
 
     // activate keyboardMode when tabbing into map
-    if (!keyboardModeActive) {
+    if (!mode) {
       if (e.key == "Tab") {
         if (document.activeElement == document.getElementById('viewDiv')) {
           console.log('activate')
@@ -1167,26 +1135,33 @@ var count = 0;
           // show keyboard mode checkbox
           const keyboardMenu = document.querySelector('#keyboardModeMenu');
           keyboardMenu.classList.remove("hidden");
+          // setMode("menu");
 
           setKeyboardMode(true);
 
           // bind events for keyboard mode menu options
           document.querySelector('#featureSelectionModeButton').addEventListener('click', (e) => {
-            console.log('feature selection mode activated')
+            setMode("featureSelection", featureIndex);
+            console.log('feature selection mode activated');
+            selectFeature(featureIndex || 0)
           });
           document.querySelector('#featureModeButton').addEventListener('click', (e) => {
-            console.log('feature mode activated')
+            setMode("feature");
+            console.log('feature mode activated');
           });
           document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
-            console.log('verbosity dropdown')
+            // setMode("featureSelection");
+            console.log('verbosity dropdown');
           });
           document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
-            console.log('sonar checkbox')
+            setMode("sound");
+            console.log('sonar checkbox');
+            sonarSetup();
           });
           document.querySelector('#helpButton').addEventListener('click', (e) => {
-            console.log('help button')
+            setMode("help");
+            console.log('help button');
           });
-
 
           if (!state.view) {
             state.view = await drawMap();
@@ -1196,6 +1171,8 @@ var count = 0;
           // e.preventDefault();
         }
       }
+    } else {
+      // keyboardModeHandler(e);
     }
     // fix browser reloading when tabbing to the page when map has focus
     if (e.key == "r" && e.metaKey && e.shiftKey) {
@@ -1226,7 +1203,6 @@ var count = 0;
   function keyStatus(msg) { document.getElementById("keyStatus").innerHTML = msg; }
   function modeStatus(msg) {
     document.getElementById("modeStatus").innerHTML = msg;
-    // statusAlert('Floor ' + keyboardNavState.modeLevel + '.');
   }
   function statusAlert(msg) { document.getElementById("keyboardModeAlert").innerHTML = msg; }
 
@@ -1264,11 +1240,7 @@ var count = 0;
     return notes;
   }
 
-  document.querySelector('#sonarModeCheckbox').addEventListener('calciteCheckboxChange', () => {
-    setup();
-  });
-
-  function setup() {
+function sonarSetup() {
     Tone.start();
 		// const osc = new Tone.Oscillator({
 		// 	type: "sine",
@@ -1276,16 +1248,20 @@ var count = 0;
 		// 	volume: -16
 		// }).toDestination();
 
-
-    // use an array of objects as long as the object has a "time" attribute
-    const part = new Tone.Part(((time, value) => {
+    var part = new Tone.Part(((time, value) => {
+      // console.log('time?', time, value)
       synth.triggerAttackRelease(value.note, "8n", time, value.velocity);
+
+      // console.log(Tone.Transport.state)
     }), getNotes() ).start(0);
+    console.log(part)
+    // use an array of objects as long as the object has a "time" attribute
 
     if (Tone.Transport.state == "started") {
       Tone.Transport.stop();
     };
     Tone.Transport.start();
+
   }
 
 
