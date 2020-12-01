@@ -870,9 +870,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       console.log('verbosity dropdown');
     });
     document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
+      console.log('sonar checkbox');
       setMode("sound");
-      // console.log('sonar checkbox');
-      sonarSetup();
+      // toggle sound
+      if (e.currentTarget.checked) sonarSetup();
+      else Tone.Transport.stop()
     });
     document.querySelector('#helpButton').addEventListener('click', (e) => {
       setMode("help");
@@ -887,14 +889,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   async function setKeyboardMode(value) {
     let { view } = state;
-    console.trace('setKeyboardMode', value)
-    // keyboard mode on
-    if (value) {
+
+    if (value) { // keyboard mode on
       // show keyboard mode menu
       const keyboardMenu = document.querySelector('#keyboardModeMenu');
       keyboardMenu.classList.remove("hidden");
       state.view.ui.add('keyboardModeMenu', 'top-left');
-      console.log('KeyboardMode on.');
       statusAlert('KeyboardMode on.');
       document.activeElement.blur();
       keyboardMenu.focus();
@@ -908,8 +908,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       }
 
       updateFeatures();
-    // keyboard mode off
-    } else if (!value) {
+
+    } else if (!value) { // keyboard mode off
       statusAlert('KeyboardMode off.');
       // hide keyboard mode menu
       state.view.ui.remove('keyboardModeMenu');
@@ -922,7 +922,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   async function updateFeatures() {
-    console.log('updating Features')
+    console.log('updating features')
     let {view, layer} = state;
     let layerView = await view.whenLayerView(layer);
     var features = (await state.layer.queryFeatures()).features;
@@ -969,9 +969,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     if (e.key == "Escape") {
       setKeyboardMode(false);
     }
-    if (e.key == "Tab") {
-      sonarSetup();
-    }
+    // if (e.key == "Tab") {
+    //   sonarSetup();
+    // }
   }
 
   // featureSelection mode
@@ -1283,7 +1283,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function sonarSetup() {
-    console.log('sonar start')
     Tone.start();
 
     getNotes(part);
