@@ -16,36 +16,44 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   FeatureLayer,
   generateHistogram,
   HistogramRangeSlider,
+
   Histogram,
   uniqueValues,
   Legend,
   colorRamps,
   Color,
+
   viewColorUtils,
   LabelClass,
   CIMSymbol,
   cimSymbolUtils,
   Popup,
+
   PopupTemplate,
   esriRequest,
+  webMercatorUtils,
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
   "esri/layers/FeatureLayer",
   "esri/smartMapping/statistics/histogram",
   "esri/widgets/HistogramRangeSlider",
+
   "esri/widgets/Histogram",
   "esri/smartMapping/statistics/uniqueValues",
   "esri/widgets/Legend",
   "esri/smartMapping/symbology/support/colorRamps",
   "esri/smartMapping/symbology/color",
+
   "esri/views/support/colorUtils",
   "esri/layers/support/LabelClass",
   "esri/symbols/CIMSymbol",
   "esri/symbols/support/cimSymbolUtils",
   "esri/widgets/Popup",
+
   "esri/PopupTemplate",
   "esri/request",
+  "esri/geometry/support/webMercatorUtils",
 ]);
 
   // data urls
@@ -156,7 +164,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
 
     // put vars on window for debugging
-    Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ generateHistogram, HistogramRangeSlider, uniqueValues, keyboardModeState });
+    Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ generateHistogram, HistogramRangeSlider, uniqueValues, keyboardModeState, webMercatorUtils });
 
     // Dataset info
     // document.querySelector('#datasetName').innerHTML = dataset.attributes.name;
@@ -901,6 +909,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       setMode("menu");
 
       window.addEventListener('keydown', keyboardModeHandler);
+      window.addEventListener('keyup', keyboardModeHandler);
       if (!view) {
         view = await drawMap();
       }
@@ -914,6 +923,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       setMode(null)
       state.view.popup.close();
       window.removeEventListener('keydown', keyboardModeHandler);
+      window.removeEventListener('keyup', keyboardModeHandler);
       keyboardMenu.classList.add("hidden");
       document.getElementById('viewDiv').focus();
     }
@@ -1190,6 +1200,36 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         }
       }
     } else {
+      // global arrow key navigation – replace default
+
+      // TODO: handle longitude wraparound - use default for now
+
+      // if (e.key == 'ArrowRight') {
+      //   var geoExtent = webMercatorUtils.webMercatorToGeographic(state.view.extent);
+      //   console.log('geoExtent:', geoExtent);
+      //   console.log('state.view.extent.center.longitude', state.view.extent.center.longitude)
+      //   console.log('extent:', state.view.extent.xmax, state.view.extent.center.y)
+      //   // console.log(webMercatorUtils.geographicToWebMercator(new PointerEvent(state.view.extent.xmax, lat: state.view.extent.center.y}))
+      //   let goal = webMercatorUtils.webMercatorToGeographic({long: state.view.extent.xmax, lat: state.view.extent.center.latitude})
+      //   console.log('goal:', goal)
+      //   var long = extent.xmax;
+      //   // state.view.goTo(webMercatorUtils.webMercatorToGeographic({long: goal.xmax, lat: state.view.extent.center.y}));
+      //   if (long < state.view.extent.center.longitude) // wraparound
+      //   {
+      //     long += 360;
+      //   }
+      //   state.view.goTo([extent.xmax, state.view.extent.center.latitude]);
+      // } else if (e.key == 'ArrowLeft') {
+
+      // } else if (e.key == 'ArrowUp') {
+
+      // } else if (e.key == 'ArrowDown') {
+
+      // } else if (e.key == 'z') {
+
+      // } else if (e.key == 'x') {
+
+      // }
       // keyboardModeHandler(e);
     }
     // fix browser reloading when tabbing to the page when map has focus
