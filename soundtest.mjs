@@ -116,12 +116,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // update existing view, then exit
       view.map = map;
       state = {...state, view}
-      // explicitly wait for bgColor to be updated, then update the layerView
-      await getBgColor().then(color => {
-        state.bgColor = color;
-        updateLayerViewEffect();
-      });
-      return view;
+      // // explicitly wait for bgColor to be updated, then update the layerView
+      // await getBgColor().then(color => {
+      //   state.bgColor = color;
+      //   updateLayerViewEffect();
+      // });
+      // return view;
     }
     var view = new MapView({
       container: "viewDiv",
@@ -136,11 +136,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // add toggle checkboxes
 
-    view.ui.add('zoomToData', 'top-right');
-    const zoomToDataCheckbox = document.querySelector('#zoomToData calcite-checkbox');
-    zoomToDataCheckbox.addEventListener('calciteCheckboxChange', () => {
-      updateLayerViewEffect();
-    });
+    // view.ui.add('zoomToData', 'top-right');
+    // const zoomToDataCheckbox = document.querySelector('#zoomToData calcite-checkbox');
+    // zoomToDataCheckbox.addEventListener('calciteCheckboxChange', () => {
+    //   updateLayerViewEffect();
+    // });
 
     // view.ui.add('darkMode', 'top-right');
     // darkModeCheckbox.addEventListener('calciteCheckboxChange', async () => {
@@ -1166,10 +1166,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // TESTS
   loadDataset({env: "prod", datasetId:"8581a7460e144ae09ad25d47f8e82af8_0"});
 
-  // set up global keydown listener - keybaordMode listener is in keyboardModeHandler()
+  // set up global keydown listener - keyboardMode listener is in keyboardModeHandler()
   var keydownListener = window.addEventListener('keydown', async e => {
     let {mode, featureIndex} = keyboardModeState;
     keyStatus(nameKeyCombo(e));
+    // console.log(e.key)
+    // setTimeout(function(){console.log(e);debugger}, 10)
 
     // activate keyboardMode when tabbing into map
     if (!mode) {
@@ -1196,11 +1198,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }
   });
 
-  var keydownListener = window.addEventListener('keyup', () => {
-    let el = document.activeElement;
-    focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
-  });
+  // var keyupListener = window.addEventListener('keyup', e => {
+  //   console.log(e.key)
+  //   let el = document.activeElement;
+  //   focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
+  // });
 
+  // format key names for status display
   function nameKeyCombo(e) {
     let keyName = "";
     switch (e.key) {
