@@ -996,23 +996,17 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
       // Plain Tab: move forward through a series
       } else {
-        // if no feature selected, select the first feature
-        if (!feature) {
+        // if no feature selected, or if the last feature is selected, select the first feature
+        if (!feature || featureIndex == features.length - 1) {
           selectFeature(0);
-        }
-        // if the last feature is selected, wrap around to first feature
-        else if (featureIndex == features.length-1) {
-          selectFeature(0)
-        }
         // if a feature is selected, select the next feature
-        else {
+        } else {
           selectFeature(featureIndex + 1);
           // sound.stop();
           // sound.start();
         }
       }
       e.preventDefault();
-      return false;
     }
     if (e.key == "Escape") { // back to menu
       setMode("menu");
@@ -1020,9 +1014,26 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       state.view.popup.close();
       e.preventDefault();
     }
+    if (e.key == "Enter") { // go into selected feature
+      if (keyboardModeState.feature) {
+        setMode("feature")
+        document.activeElement.blur();
+        if (!document.getElementById("popup-content")) {
+          // make a popup
+        }
+        document.getElementById("popup-content").focus();
+        statusAlert(`Feature #${featureIndex} selected.`)
+        e.preventDefault();
+      } else {
+        statusAlert("No feature selected.")
+      }
+    }
+    keyboardModeState = {...keyboardModeState, featureIndex}
   }
 
   function featureHandler(e) {
+    if (e.key == "Enter") { // go into selected feature
+    }
   }
 
   function soundHandler(e) {
@@ -1111,18 +1122,19 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   async function selectFeature(index) {
-    console.trace('selectFeature:', index)
+    if (typeof index == "undefined") index = keyboardModeState.featureIndex || 0;
     var {view, layer} = state;
     var {feature, features} = keyboardModeState;
     if (!features) {
       console.error('no features')
-      // debugger
-
     }
     feature = features[index];
     keyboardModeState = {...keyboardModeState, feature, featureIndex: index};
-    // debugger
-    view.whenLayerView(layer).then(async function(layerView) {
+    view.whenLayerView(layer).then(async layerView => {
+      // TODO: figure out why this async function doesn't see the updated featureIndex
+      // update featureIndex again
+      keyboardModeState.featureIndex = index;
+
       var objectId = feature.attributes.FID;
 
       if (highlight) {
