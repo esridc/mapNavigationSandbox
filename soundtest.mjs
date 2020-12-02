@@ -857,9 +857,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function initKeyboardMode() {
     // bind events for keyboard mode menu options
     document.querySelector('#featureSelectionModeButton').addEventListener('click', (e) => {
-      setMode("featureSelection", featureIndex);
+      setMode("featureSelection");
       console.log('feature selection mode activated');
-      selectFeature(featureIndex || 0)
+      selectFeature();
     });
     document.querySelector('#featureModeButton').addEventListener('click', (e) => {
       setMode("feature");
@@ -871,7 +871,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     });
     document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
       console.log('sonar checkbox');
-      setMode("sound");
+      // setMode("sound");
       // toggle sound
       if (e.currentTarget.checked) sonarSetup();
       else Tone.Transport.stop()
@@ -898,11 +898,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       statusAlert('KeyboardMode on.');
       document.activeElement.blur();
       keyboardMenu.focus();
-      // debugger
       setMode("menu");
 
       window.addEventListener('keydown', keyboardModeHandler);
-      // debugger
       if (!view) {
         view = await drawMap();
       }
@@ -946,7 +944,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   var keyboardModeState = {
     features: null,
     feature: null,
-    featureIndex: null,
+    featureIndex: 0,
     mode: null,
     place: null
   };
@@ -988,8 +986,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // Shift-Tab: move backward through the series
       if (e.shiftKey) {
         // if no feature selected, or the first feature is selected, select the last feature
-        if (!featureIndex || featureIndex == 0) {
-          selectFeature(features.length-1)
+        if (featureIndex == 0) {
+          selectFeature(features.length - 1);
         }
         // if a feature is selected, select the previous feature
         else {
@@ -1016,7 +1014,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       e.preventDefault();
       return false;
     }
-    if (e.key == "Escape") {
+    if (e.key == "Escape") { // back to menu
       setMode("menu");
       document.getElementById('keyboardModeMenu').focus();
       state.view.popup.close();
@@ -1038,7 +1036,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   function popupContent(feature) {
     // Abort any outstanding requests
-    console.log('requests.length:', requests.length)
     if (requests.length > 0) {
 
       // (At the moment there's no code path to > 1 request, but there was once, and may be later)
@@ -1050,11 +1047,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       requests = [];
     }
     keyboardModeState.place = null;
-    console.log('feature?', feature)
 
     var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
     var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
-    console.log('url:\n', url)
 
     let template = document.getElementById('popup-content-template');
     let div = template.cloneNode(true);
@@ -1138,7 +1133,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         if (document.getElementById("popup-content")) {
           document.activeElement.blur();
           document.getElementById("popup-content").focus();
-          // console.log('focused:', document.activeElement)
         } else {
           // console.log('no popup', e)
         }
@@ -1153,7 +1147,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
       });
-      // debugger
       statusAlert('Popup: '+content.meta);
     });
   }
