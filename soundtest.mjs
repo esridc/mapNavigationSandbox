@@ -908,9 +908,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   async function setKeyboardMode(value) {
     let { view } = state;
 
+    const keyboardMenu = document.querySelector('#keyboardModeMenu');
     if (value) { // keyboard mode on
       // show keyboard mode menu
-      const keyboardMenu = document.querySelector('#keyboardModeMenu');
       keyboardMenu.classList.remove("hidden");
       state.view.ui.add('keyboardModeMenu', 'top-left');
       statusAlert('KeyboardMode on.');
@@ -919,7 +919,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       setMode("menu");
 
       window.addEventListener('keydown', keyboardModeHandler);
-      window.addEventListener('keyup', keyboardModeHandler);
       if (!view) {
         view = await drawMap();
       }
@@ -933,15 +932,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       setMode(null)
       state.view.popup.close();
       window.removeEventListener('keydown', keyboardModeHandler);
-      window.removeEventListener('keyup', keyboardModeHandler);
       keyboardMenu.classList.add("hidden");
-      document.getElementById('viewDiv').focus();
     }
   }
 
   async function updateFeatures() {
     console.log('updating features')
     let {view, layer} = state;
+    if (!view) return false;
     let layerView = await view.whenLayerView(layer);
     // query visible features
     var query = layer.createQuery();
@@ -1157,9 +1155,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     feature = features[index];
     keyboardModeState = {...keyboardModeState, feature, featureIndex: index};
     view.whenLayerView(layer).then(async layerView => {
-      // TODO: figure out why this async function doesn't see the updated featureIndex
-      // update featureIndex again
-      keyboardModeState.featureIndex = index;
+      // TODO: figure out why this async function doesn't see the updated state
+      // update keyboardModeState again
+      keyboardModeState = {...keyboardModeState, feature, featureIndex: index};
 
       var objectId = feature.attributes.FID;
 
