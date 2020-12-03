@@ -1423,12 +1423,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let oldLatMin = viewLatMin;
     let oldLatMax = viewLatMax;
     let newLatMin = 0;
-    var newLatMax = samples - 1;
+    var newLatMax = samples - 1; // if using a scale
+    // let newLatMax = 1; // if using arbitrary pitches
     // TODO: bin by longitude, map quantity to velocity
     let notes = Math.min(features.length, 100); // 100 = maximum number of notes
     // let root = 32.70 // c1
     let root = 65.4 // c2
     // let root = 130.813 // c3
+    let octaves = 5;
 
     //
     // GET TIMES
@@ -1446,11 +1448,15 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // shift range of latitudes to range of scale indices
       let oldLatVal = position.y;
       let newLatVal = (((oldLatVal - oldLatMin) * (newLatMax - newLatMin)) / (oldLatMax - oldLatMin)) + newLatMin;
+      // choose a pitch
+      let pitch = root * scale[Math.floor(newLatVal)] // use a scale
+      // let pitch = root * (octaves * newLatVal + 1) // use arbitrary pitches
+
       // shift range of longitudes to range of time values
       let oldLongVal = position.x;
       let newLongVal = (((oldLongVal - oldLongMin) * (newLongMax - newLongMin)) / (oldLongMax - oldLongMin)) + newLongMin;
 
-      score.push({time: newLongVal, note: root * scale[Math.floor(newLatVal)], velocity: .5});
+      score.push({time: newLongVal, note: pitch, velocity: .5});
     }
     return score;
 
