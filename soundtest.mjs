@@ -1383,6 +1383,27 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     } else {
       Tone.Transport.start();
     };
+    getNotes(part);
+    arrangeFeatures();
+  }
+
+  function arrangeFeatures() {
+    let features = keyboardModeState.features;
+
+    //     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
+
+    // quantize latitudes
+    var positions = features.map(a => [a.geometry.longitude, a.geometry.latitude]);
+    // positions.sort((a, b) => (a[0] > b[0] ? 1 : -1)) // sort
+    var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
+    var max = positions.reduce((a, b) => Math.max(a, b[1]), Number.NEGATIVE_INFINITY);
+    let range = max - min;
+    let samples = 100;
+    let breaks = Array(samples).fill().map((a, i) => i * range/samples);
+
+    // NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
+    console.log(getPentatonic(20));
+
   }
 
   initKeyboardMode();
