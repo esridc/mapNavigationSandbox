@@ -343,6 +343,7 @@ body,
 
 #keyboardModeMenu {
   outline: 2px solid gray;
+  background-color: #ddd;
   padding: 4px;
 }
 
