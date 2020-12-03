@@ -1165,14 +1165,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         highlight.remove();
       }
       highlight = layerView.highlight([objectId]);
-      view.popup.watch("visible", (e) => {
-        if (document.getElementById("popup-content")) {
-          document.activeElement.blur();
-          document.getElementById("popup-content").focus();
-        } else {
-          // console.log('no popup', e)
-        }
-      });
+
       let content = popupContent(feature);
       if (!content) {
         console.log("No popup content")
@@ -1194,15 +1187,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   var keydownListener = window.addEventListener('keydown', async e => {
     let {mode, featureIndex} = keyboardModeState;
     keyStatus(nameKeyCombo(e));
-    // console.log(e.key)
-    // setTimeout(function(){console.log(e);debugger}, 10)
 
     // activate keyboardMode when tabbing into map
     if (!mode) {
       if (e.key == "Tab") {
         if (document.activeElement == document.getElementById('viewDiv')) {
           console.log('activate')
-          focusStatus('activate');
 
           setKeyboardMode(true);
 
