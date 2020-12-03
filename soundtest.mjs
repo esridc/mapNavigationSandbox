@@ -32,6 +32,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   PopupTemplate,
   esriRequest,
   webMercatorUtils,
+  watchUtils,
+  Point,
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
@@ -54,6 +56,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/PopupTemplate",
   "esri/request",
   "esri/geometry/support/webMercatorUtils",
+  "esri/core/watchUtils",
+  "esri/geometry/Point",
 ]);
 
   // data urls
@@ -141,6 +145,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         fillOpacity: 0.6
       }
     });
+    // update features when the view is moved
+    watchUtils.whenTrue(view, "stationary", function() {
+      // Get the new center of the view only when view is stationary.
+      updateFeatures();
+    });
+
 
     // add toggle checkboxes
 
@@ -933,7 +943,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     console.log('updating features')
     let {view, layer} = state;
     let layerView = await view.whenLayerView(layer);
-    var features = (await state.layer.queryFeatures()).features;
+    // query visible features
+    var query = layer.createQuery();
+    query.geometry = view.extent;
+    query.spatialRelationship = "intersects";
+
+    var features = (await state.layer.queryFeatures(query)).features;
+    console.log('features:', features.length)
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
 
