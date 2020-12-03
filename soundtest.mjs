@@ -1348,20 +1348,23 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // clear any existing notes
     part.clear();
     // let features = arrangeFeatures();
-    var notes = [];
-    var max = 10;
-    for (var x=0; x < max; x++) {
-      notes.push(
-        // 130.813 = C3
-        {time: x/max, note: 130.813 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .5}
-        // {time: x/max, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
-        // {time: x/max, note: 130.813 * 130.813 * Math.random(), velocity: .3}
-        // {time: x/max, note: 130.813 * 10 * Math.random(), velocity: .3}
+    var notes = arrangeFeatures();
 
-        // standalone notes
-        // 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1)
-      )
-    };
+    // var notes = [];
+    // var max = 10;
+    // for (var x=0; x < max; x++) {
+    //   notes.push(
+    //     // 130.813 = C3
+    //     {time: x/max, note: 130.813 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .5}
+    //     // {time: x/max, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
+    //     // {time: x/max, note: 130.813 * 130.813 * Math.random(), velocity: .3}
+    //     // {time: x/max, note: 130.813 * 10 * Math.random(), velocity: .3}
+
+    //     // standalone notes
+    //     // 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1)
+    //   )
+    // };
+
     for (let x = 0; x < notes.length; x++) {
       part.add(notes[x]);
     }
@@ -1381,7 +1384,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       Tone.Transport.start();
     };
     getNotes(part);
-    arrangeFeatures();
   }
 
   function arrangeFeatures() {
@@ -1392,14 +1394,45 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // quantize latitudes
     var positions = features.map(a => [a.geometry.longitude, a.geometry.latitude]);
     // positions.sort((a, b) => (a[0] > b[0] ? 1 : -1)) // sort
-    var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
-    var max = positions.reduce((a, b) => Math.max(a, b[1]), Number.NEGATIVE_INFINITY);
-    let range = max - min;
-    let samples = 100;
-    let breaks = Array(samples).fill().map((a, i) => i * range/samples);
+    // var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
+    // var max = positions.reduce((a, b) => Math.max(a, b[1]), Number.NEGATIVE_INFINITY);
+
+    let extent = webMercatorUtils.webMercatorToGeographic(state.view.extent);
+    var viewMin = extent.ymin;
+    var viewMax = extent.ymax;
+
+    // let range = max - min;
+    // let viewRange = viewMax - viewMin;
+
+    let samples = 50; // maximum number of notes
+
+    // let breaks = Array(samples).fill().map((a, i) => i * range/samples);
 
     // NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
-    console.log(getPentatonic(20));
+
+    let scale = getPentatonic(samples);
+    var score = [];
+
+    let oldMin = viewMin;
+    let oldMax = viewMax;
+    let newMin = 0;
+    let newMax = samples - 1;
+    // TODO: bin by longitude, map quantity to velocity
+    let notes = Math.min(features.length, 100); // 100 = maximum number of notes
+    // let root = 32.70 // c1
+    let root = 65.4 // c2
+    // let root = 130.813 // c3
+    let duration = 1.5; // number of seconds per sonar ping
+    for (var x = 0; x < notes; x++) {
+      let oldVal = positions[x][1];
+      // shift range of latitudes to range of indices
+      let newVal = (((oldVal - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
+      // TODO: map longitude to time
+      score.push({time: x/notes * duration, note: root * scale[Math.floor(newVal)], velocity: .5});
+    }
+    return score;
+
+
 
   }
 
