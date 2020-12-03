@@ -1282,11 +1282,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }
   });
 
-  // var keyupListener = window.addEventListener('keyup', e => {
-  //   console.log(e.key)
-  //   let el = document.activeElement;
-  //   focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
-  // });
+  var keyupListener = window.addEventListener('keyup', e => {
+    let el = document.activeElement;
+    focusStatus(el.id ? el.nodeName + ': ' + el.id : el.nodeName);
+  });
 
   // format key names for status display
   function nameKeyCombo(e) {
