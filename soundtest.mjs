@@ -951,18 +951,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
 
-    // // get geometry
-    // layerView
-    //   .queryFeatures({
-    //     geometry: view.extent,
-    //     returnGeometry: true
-    //   })
-    //   .then(function(results) {
-    //     // do something with the resulting graphics
-    //     // let graphics = results.features;
-    //     console.log('setting features')
-    //     keyboardModeState.features = results.features;
-    //   });
+    if (keyboardModeState.sonar) {
+      ping()
+    }
+
   }
 
   var keyboardModeState = {
@@ -970,7 +962,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     feature: null,
     featureIndex: 0,
     mode: null,
-    place: null
+    place: null,
+    sonar: null,
   };
 
   // mode event handler
@@ -1354,14 +1347,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function getNotes(part) {
     // clear any existing notes
     part.clear();
+    // let features = arrangeFeatures();
     var notes = [];
-    var max = 100;
+    var max = 10;
     for (var x=0; x < max; x++) {
       notes.push(
         // 130.813 = C3
-        // {time: x/max, note: 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .5}
+        {time: x/max, note: 130.813 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .5}
         // {time: x/max, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
-        {time: x/max, note: 130.813 * 130.813 * Math.random(), velocity: .3}
+        // {time: x/max, note: 130.813 * 130.813 * Math.random(), velocity: .3}
+        // {time: x/max, note: 130.813 * 10 * Math.random(), velocity: .3}
 
         // standalone notes
         // 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1)
@@ -1374,10 +1369,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function sonarSetup() {
+    keyboardModeState.sonar = true;
     Tone.start();
+    ping();
+  }
 
-    getNotes(part);
-
+  function ping() {
     if (Tone.Transport.state == "started") {
       Tone.Transport.stop();
     } else {
