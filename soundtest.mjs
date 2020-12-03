@@ -1389,20 +1389,27 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function arrangeFeatures() {
     let features = keyboardModeState.features;
 
-    //     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
+    // features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
 
-    // quantize latitudes
+    //
+    // GET PITCHES
+    //
+
     var positions = features.map(a => [a.geometry.longitude, a.geometry.latitude]);
     // positions.sort((a, b) => (a[0] > b[0] ? 1 : -1)) // sort
     // var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
     // var max = positions.reduce((a, b) => Math.max(a, b[1]), Number.NEGATIVE_INFINITY);
-
-    let extent = webMercatorUtils.webMercatorToGeographic(state.view.extent);
-    var viewMin = extent.ymin;
-    var viewMax = extent.ymax;
+    let extent = state.view.extent;
+    // keep long in web mercator meters to handle wraparound
+    var viewLongMin = extent.xmin;
+    var viewLongMax = extent.xmax;
+    // // convert lat to geographic coordinates
+    // let extent = webMercatorUtils.webMercatorToGeographic(state.view.extent);
+    var viewLatMin = extent.ymin;
+    var viewLatMax = extent.ymax;
 
     // let range = max - min;
-    // let viewRange = viewMax - viewMin;
+    // let viewRange = viewLatMax - viewLatMin;
 
     let samples = 50; // maximum number of notes
 
@@ -1413,26 +1420,39 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let scale = getPentatonic(samples);
     var score = [];
 
-    let oldMin = viewMin;
-    let oldMax = viewMax;
-    let newMin = 0;
-    let newMax = samples - 1;
+    let oldLatMin = viewLatMin;
+    let oldLatMax = viewLatMax;
+    let newLatMin = 0;
+    var newLatMax = samples - 1;
     // TODO: bin by longitude, map quantity to velocity
     let notes = Math.min(features.length, 100); // 100 = maximum number of notes
     // let root = 32.70 // c1
     let root = 65.4 // c2
     // let root = 130.813 // c3
-    let duration = 1.5; // number of seconds per sonar ping
+
+    //
+    // GET TIMES
+    //
+
+    let duration = 1; // number of seconds per sonar ping
+    let oldLongMin = viewLongMin;
+    let oldLongMax = viewLongMax;
+    let newLongMin = 0;
+    let newLongMax = duration;
+
     for (var x = 0; x < notes; x++) {
-      let oldVal = positions[x][1];
-      // shift range of latitudes to range of indices
-      let newVal = (((oldVal - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
-      // TODO: map longitude to time
-      score.push({time: x/notes * duration, note: root * scale[Math.floor(newVal)], velocity: .5});
+      // convert to geographic coordinates to handle longitude wraparound
+      let position = webMercatorUtils.geographicToWebMercator(new Point(positions[x]));
+      // shift range of latitudes to range of scale indices
+      let oldLatVal = position.y;
+      let newLatVal = (((oldLatVal - oldLatMin) * (newLatMax - newLatMin)) / (oldLatMax - oldLatMin)) + newLatMin;
+      // shift range of longitudes to range of time values
+      let oldLongVal = position.x;
+      let newLongVal = (((oldLongVal - oldLongMin) * (newLongMax - newLongMin)) / (oldLongMax - oldLongMin)) + newLongMin;
+
+      score.push({time: newLongVal, note: root * scale[Math.floor(newLatVal)], velocity: .5});
     }
     return score;
-
-
 
   }
 
