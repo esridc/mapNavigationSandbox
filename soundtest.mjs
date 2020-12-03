@@ -1218,34 +1218,62 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     } else {
       // global arrow key navigation – replace default
 
-      // TODO: handle longitude wraparound - use default for now
+      let weight = .85; // weighted average – move this percent from the center to the edge
 
-      // if (e.key == 'ArrowRight') {
-      //   var geoExtent = webMercatorUtils.webMercatorToGeographic(state.view.extent);
-      //   console.log('geoExtent:', geoExtent);
-      //   console.log('state.view.extent.center.longitude', state.view.extent.center.longitude)
-      //   console.log('extent:', state.view.extent.xmax, state.view.extent.center.y)
-      //   // console.log(webMercatorUtils.geographicToWebMercator(new PointerEvent(state.view.extent.xmax, lat: state.view.extent.center.y}))
-      //   let goal = webMercatorUtils.webMercatorToGeographic({long: state.view.extent.xmax, lat: state.view.extent.center.latitude})
-      //   console.log('goal:', goal)
-      //   var long = extent.xmax;
-      //   // state.view.goTo(webMercatorUtils.webMercatorToGeographic({long: goal.xmax, lat: state.view.extent.center.y}));
-      //   if (long < state.view.extent.center.longitude) // wraparound
-      //   {
-      //     long += 360;
-      //   }
-      //   state.view.goTo([extent.xmax, state.view.extent.center.latitude]);
-      // } else if (e.key == 'ArrowLeft') {
+      if (e.key == 'ArrowRight') {
+        state.view.goTo(new Point({
+          x: (1 - weight) * state.view.center.x + weight * state.view.extent.xmax,
+          y: state.view.center.y,
+          spatialReference: state.view.spatialReference
+        }));
 
-      // } else if (e.key == 'ArrowUp') {
+      } else if (e.key == 'ArrowLeft') {
 
-      // } else if (e.key == 'ArrowDown') {
+        state.view.goTo(new Point({
+          x: (1 - weight) * state.view.center.x + weight * state.view.extent.xmin,
+          y: state.view.center.y,
+          spatialReference: state.view.spatialReference
+        }));
 
-      // } else if (e.key == 'z') {
+      } else if (e.key == 'ArrowUp') {
+        // 85°03'04.0636 = web mercator latitude maximum extent
+        if (state.view.center.y < 20037508.34) { // northern extent of web mercator
+          let targetY = (1 - weight) * state.view.center.y + weight * state.view.extent.ymax;
+          state.view.goTo(new Point({
+            x: state.view.center.x,
+            y: Math.min(targetY, 20037508.34),
+            spatialReference: state.view.spatialReference
+          }));
+        } else {
+          console.log('BZZT north pole')
+        }
 
-      // } else if (e.key == 'x') {
+      } else if (e.key == 'ArrowDown') {
+        if (state.view.center.y > -20037508.34) { // southern extent of web mercator
+          let targetY = (1 - weight) * state.view.center.y + weight * state.view.extent.ymin;
+          state.view.goTo(new Point({
+            x: state.view.center.x,
+            y: Math.max(targetY, -20037508.34),
+            spatialReference: state.view.spatialReference
+          }));
+        } else {
+          console.log('BZZT south pole')
+        }
 
-      // }
+      } else if (e.key == 'c') {
+        state.view.goTo(keyboardModeState.feature)
+      } else if (e.key == 'z') {
+        state.view.goTo({
+          target: keyboardModeState.feature, // defaults to null
+          zoom: state.view.zoom + 2
+        });
+
+      } else if (e.key == 'x') {
+        state.view.goTo({
+          zoom: state.view.zoom - 2
+        });
+
+      }
       // keyboardModeHandler(e);
     }
     // fix browser reloading when tabbing to the page when map has focus
