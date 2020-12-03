@@ -1306,6 +1306,17 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   let pentatonic = [1, 1.125, 1.265625, 1.5, 1.6875];
   let chromatic = [1, 1.059463, 1.122462, 1.189207, 1.259921, 1.334839, 1.414213, 1.498307, 1.587401, 1.681792, 1.781797, 1.887748];
 
+  // return a pentatonic scale of n values
+  function getPentatonic(n) {
+    let octaves = Math.floor(n/5);
+    let remainder = n % 5;
+    var scale = [];
+    for (var x = 0; x < octaves; x++) {
+      scale.push(...pentatonic.map(a => a * (x+1)));
+    }
+    return scale;
+  }
+
   // EFFECTS
 
   // const panner = new Tone.Panner(1).toDestination();
