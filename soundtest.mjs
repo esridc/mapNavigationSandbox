@@ -921,7 +921,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         keyboardModeState.sonar = true;
         sonarSetup();
       }
-      else Tone.Transport.stop()
+      else {
+        keyboardModeState.sonar = false;
+        Tone.Transport.stop()
+      }
     });
     // document.querySelector('#helpButton').addEventListener('click', (e) => {
     //   setMode("help");
