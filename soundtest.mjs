@@ -77,6 +77,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       legend: null,
       categoricalMax: 7,
       fieldName: null,
+      lastPosition: null,
     }
   }
 
@@ -145,9 +146,21 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         fillOpacity: 0.6
       }
     });
+    state.lastPosition =  { x: view.extent.center.x,
+                            y: view.extent.center.y,
+                            z: view.zoom
+                          }
     // update features when the view is moved
     watchUtils.whenTrue(view, "stationary", function() {
-      // Get the new center of the view only when view is stationary.
+      let { lastPosition } = state;
+      // Get the new center of the view only when view becomes stationary.
+      if ( view.extent.center.x == lastPosition.x &&
+          view.extent.center.y == lastPosition.y &&
+          view.zoom == lastPosition.z
+      ) {
+        // nothing moved
+        return false
+      }
       updateFeatures();
     });
 
@@ -950,6 +963,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     console.log('features:', features.length)
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
+
+    state.lastPosition = {
+      x: view.extent.center.x,
+      y: view.extent.center.y,
+      z: view.zoom
+    }
 
     if (keyboardModeState.sonar) {
       ping()
