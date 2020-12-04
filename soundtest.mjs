@@ -1048,14 +1048,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       e.preventDefault();
     }
     if (e.key == "Enter") { // go into selected feature
-      if (keyboardModeState.feature) {
+      if (feature) {
         setMode("feature")
         document.activeElement.blur();
         if (!document.getElementById("popup-content")) {
           // make a popup
         }
         document.getElementById("popup-content").focus();
-        statusAlert(`Feature #${featureIndex} selected.`)
+        statusAlert(`Feature #${featureIndex + 1} selected.`)
         e.preventDefault();
       } else {
         statusAlert("No feature selected.")
@@ -1150,7 +1150,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       td.setAttribute('tabindex', '0');
       row.appendChild(td);
     }
-    let meta = `Feature #${keyboardModeState.featureIndex} of ${keyboardModeState.features.length}`;
+    let meta = `Feature #${keyboardModeState.featureIndex + 1} of ${keyboardModeState.features.length}`;
     return {div, meta};
   }
 
