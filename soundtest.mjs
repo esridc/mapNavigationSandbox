@@ -1450,27 +1450,18 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // keep long in web mercator meters to handle wraparound
     var viewLongMin = extent.xmin;
     var viewLongMax = extent.xmax;
-    // // convert lat to geographic coordinates
-    // let extent = webMercatorUtils.webMercatorToGeographic(state.view.extent);
     var viewLatMin = extent.ymin;
     var viewLatMax = extent.ymax;
 
-    // let range = max - min;
-    // let viewRange = viewLatMax - viewLatMin;
+    let pitches = 26; // maximum number of pitches
 
-    let samples = 50; // maximum number of notes
-
-    // let breaks = Array(samples).fill().map((a, i) => i * range/samples);
-
-    // NewValue = (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
-
-    let scale = getPentatonic(samples);
+    let scale = getPentatonic(pitches);
     var score = [];
 
     let oldLatMin = viewLatMin;
     let oldLatMax = viewLatMax;
     let newLatMin = 0;
-    var newLatMax = samples - 1; // if using a scale
+    var newLatMax = pitches - 1; // if using a scale
     // let newLatMax = 1; // if using arbitrary pitches
     // TODO: bin by longitude, map quantity to velocity
     let notes = Math.min(features.length, 100); // 100 = maximum number of notes
@@ -1521,13 +1512,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var oldLatMax = extent.ymax;
 
     var newLatMin = 0;
-    let samples = 100;
-    var newLatMax = samples - 1; // if using a scale
+    let pitches = 26;
+    var newLatMax = pitches - 1; // if using a scale
 
     let newLatVal = rescale(position.y, oldLatMin, oldLatMax, newLatMin, newLatMax);
     let root = 65.4 // c2
-    let scale = getPentatonic(samples);
-    return root * scale[Math.floor(newLatVal)] // use a scale
+    let scale = getPentatonic(pitches);
+    let val = root * scale[Math.floor(newLatVal)] // use a scale
+    return val;
   }
 
   // scale a value from the range oldMin-oldMax to the range newMin-newMax
