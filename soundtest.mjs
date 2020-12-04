@@ -1352,8 +1352,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let octaves = Math.floor(n/5);
     let remainder = n % 5;
     var scale = [];
+    // whole octaves
     for (var x = 0; x < octaves; x++) {
-      scale.push(...pentatonic.map(a => a * (x+1)));
+      scale.push(...pentatonic.map(a => a * (2**x)));
+    }
+    // partial octaves
+    for (var x = 0; x < remainder; x++) {
+      scale.push(pentatonic[x] * (2**octaves));
     }
     return scale;
   }
