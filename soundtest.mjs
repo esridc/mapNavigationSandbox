@@ -1294,6 +1294,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           zoom: state.view.zoom - 2
         });
 
+      } else if (e.key == 's') {
+        // do a sonar ping
+        if (!keyboardModeState.sonar) {
+          sonarSetup()
+        } else {
+          ping();
+        }
+
       }
       // keyboardModeHandler(e);
     }
