@@ -1433,6 +1433,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     Tone.Transport.start();
   }
 
+  function r(i) {
+    // debugger
+    return parseFloat( (i / 1000).toFixed(4) );
+  }
   function arrangeFeatures() {
     let features = keyboardModeState.features;
 
@@ -1442,62 +1446,130 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // GET PITCHES
     //
 
-    var positions = features.map(a => [a.geometry.longitude, a.geometry.latitude]);
+    var positions = features.map(a => [r(a.geometry.x), r(a.geometry.y)]);
+    console.log(positions.length, ':', positions)
     // positions.sort((a, b) => (a[0] > b[0] ? 1 : -1)) // sort
     // var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
     // var max = positions.reduce((a, b) => Math.max(a, b[1]), Number.NEGATIVE_INFINITY);
-    let extent = state.view.extent;
     // keep long in web mercator meters to handle wraparound
-    var viewLongMin = extent.xmin;
-    var viewLongMax = extent.xmax;
-    var viewLatMin = extent.ymin;
-    var viewLatMax = extent.ymax;
+    // var viewLatMin = extent.ymin;
+    // var viewLatMax = extent.ymax;
+
+    var positionsLongMin = positions.reduce((a, b )=> Math.min(a, b[0]), Infinity);
+    var positionsLatMin = positions.reduce((a, b )=> Math.min(a, b[1]), Infinity);
+    var positionsLongMax = positions.reduce((a, b )=> Math.max(a, b[0]), 0);
+    var positionsLatMax = positions.reduce((a, b )=> Math.max(a, b[1]), 0);
+
+    let extent = state.view.extent;
+    // find the ultimate range of the locations
+    var longMin = Math.min(extent.xmin, positionsLongMin)
+    var latMin = Math.min(extent.ymin, positionsLatMin)
+    var longMax = Math.max(extent.xmax, positionsLongMax)
+    var latMax = Math.max(extent.ymax, positionsLatMax)
+// debugger
+    var longRange = longMax - longMin;
+    var latRange = latMax - latMin;
+
+    // reduce precision
+    longRange = r(longRange)
+    latRange = r(latRange)
+    longMax = r(longMax)
+    latMax = r(latMax)
+    longMin = r(longMin)
+    latMin = r(latMin)
+
+    // debugger
+    // shift everything to make the minimum values 0, because rectbin can't handle negative values
+    console.log('1longMax:', longMax, 'latMax:', latMax)
+    longMax -= longMin;
+    latMax -= latMin;
+    console.log('2longMax:', longMax, 'latMax:', latMax)
+    positions = positions.map(a => [a[0]-longMin, a[1]-latMin]);
+    longMin = 0;
+    latMin = 0;
 
     let pitches = 26; // maximum number of pitches
 
     let scale = getPentatonic(pitches);
     var score = [];
 
-    let oldLatMin = viewLatMin;
-    let oldLatMax = viewLatMax;
-    let newLatMin = 0;
-    var newLatMax = pitches - 1; // if using a scale
+    // let oldLatMin = viewLatMin;
+    // let oldLatMax = viewLatMax;
+    // let newLatMin = 0;
+    // var newLatMax = pitches - 1; // if using a scale
     // let newLatMax = 1; // if using arbitrary pitches
-    // TODO: bin by longitude, map quantity to velocity
-    let notes = Math.min(features.length, 100); // 100 = maximum number of notes
+
+    // let notes = Math.min(features.length, 100); // 100 = maximum number of notes
+    let notes = 100; // 100 = maximum number of notes, also number of time divisions
     // let root = 32.70 // c1
     let root = 65.4 // c2
     // let root = 130.813 // c3
-    let octaves = 5;
+    // let octaves = 5;
+
+    console.log('longRange:', longRange)
+    console.log('latRange:', latRange)
+
+    var rectbin = d3.rectbin()
+    .dx(longRange / (notes))
+    .dy(latRange / (pitches));
+
+    // the result of the rectbin layout
+    let xExtent = [0, longMax];
+    let yExtent = [0, latMax];
+    var bins = rectbin(positions, xExtent, yExtent);
+    console.log(bins.filter(a => {
+      if (a.length > 0) return a;
+      else return false;
+    }))
+
+    let duration = 1; // number of seconds per sonar ping
+    let maxVelocity = bins.reduce((a, b )=> Math.max(a, b.length), 0);
+    console.log('maxvelocity:', maxVelocity)
+    // debugger
+    let volume = 2; // this one goes to Infinity
+
+    // convert bins to times and pitches, with bin count mapped to velocity
+    for (var x = 0; x < bins.length; x++) {
+      if (bins[x].length) { // if it has any entries
+        console.log(bins[x])
+        let time = bins[x].i * duration/notes;
+        let note = root * scale[ Math.max(0, Math.min(pitches, Math.floor(bins[x].j))) ];
+        // if (!note) debugger
+        let velocity = Math.max(.1, (bins[x].length / maxVelocity)) * volume;
+        // console.log(velocity)
+        score.push({ time, note, velocity });
+      }
+    }
+    console.log(score);
+    // debugger
 
     //
     // GET TIMES
     //
 
-    let duration = 1; // number of seconds per sonar ping
-    let oldLongMin = viewLongMin;
-    let oldLongMax = viewLongMax;
-    let newLongMin = 0;
-    let newLongMax = duration;
+    // let oldLongMin = viewLongMin;
+    // let oldLongMax = viewLongMax;
+    // let newLongMin = 0;
+    // let newLongMax = duration;
 
-    for (var x = 0; x < notes; x++) {
-      // convert to geographic coordinates to handle longitude wraparound
-      let position = webMercatorUtils.geographicToWebMercator(new Point(positions[x]));
-      // shift range of latitudes to range of scale indices
-      let oldLatVal = position.y;
-      // let newLatVal = (((oldLatVal - oldLatMin) * (newLatMax - newLatMin)) / (oldLatMax - oldLatMin)) + newLatMin;
-      let newLatVal = rescale(oldLatVal, oldLatMin, oldLatMax, newLatMin, newLatMax);
-      // choose a pitch
-      let pitch = root * scale[Math.floor(newLatVal)] // use a scale
-      // let pitch = root * (octaves * newLatVal + 1) // use arbitrary pitches
+    // for (var x = 0; x < notes; x++) {
+    //   // convert to geographic coordinates to handle longitude wraparound
+    //   let position = webMercatorUtils.geographicToWebMercator(new Point(positions[x]));
+    //   // shift range of latitudes to range of scale indices
+    //   let oldLatVal = position.y;
+    //   // let newLatVal = (((oldLatVal - oldLatMin) * (newLatMax - newLatMin)) / (oldLatMax - oldLatMin)) + newLatMin;
+    //   let newLatVal = rescale(oldLatVal, oldLatMin, oldLatMax, newLatMin, newLatMax);
+    //   // choose a pitch
+    //   let pitch = root * scale[Math.floor(newLatVal)] // use a scale
+    //   // let pitch = root * (octaves * newLatVal + 1) // use arbitrary pitches
 
-      // shift range of longitudes to range of time values
-      let oldLongVal = position.x;
-      // let newLongVal = (((oldLongVal - oldLongMin) * (newLongMax - newLongMin)) / (oldLongMax - oldLongMin)) + newLongMin;
-      let newLongVal = rescale(oldLongVal, oldLongMin, oldLongMax, newLongMin, newLongMax);
+    //   // shift range of longitudes to range of time values
+    //   let oldLongVal = position.x;
+    //   // let newLongVal = (((oldLongVal - oldLongMin) * (newLongMax - newLongMin)) / (oldLongMax - oldLongMin)) + newLongMin;
+    //   let newLongVal = rescale(oldLongVal, oldLongMin, oldLongMax, newLongMin, newLongMax);
 
-      score.push({time: newLongVal, note: pitch, velocity: .5});
-    }
+    //   score.push({time: newLongVal, note: pitch, velocity: .5});
+    // }
     return score;
 
   }
