@@ -1332,7 +1332,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // EFFECTS
 
   // const panner = new Tone.Panner(1).toDestination();
-  const reverb = new Tone.Reverb(2.4).toDestination();
+  var reverb = new Tone.Reverb(2.4).toDestination();
   //  panner.pan.rampTo(-1, 0.5);
 
   // COMPONENTS
@@ -1397,12 +1397,20 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function ping() {
+    getNotes(part);
+
+    // set decay with a sigmoid function
+    let z = state.view.zoom;
+    let maxDecay = 3; // seconds
+    let a = .8; // slowness of dropoff
+    let decay = (2 * maxDecay * (a ** z)/(a ** z + 1));
+    reverb.set({decay: ""+decay}); // needs to be a string, for reasons
+
+    // restart the playback timeline
     if (Tone.Transport.state == "started") {
       Tone.Transport.stop();
-    } else {
-      Tone.Transport.start();
-    };
-    getNotes(part);
+    }
+    Tone.Transport.start();
   }
 
   function arrangeFeatures() {
