@@ -135,6 +135,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       //   updateLayerViewEffect();
       // });
       // return view;
+      state.lastPosition =  { x: state.view.extent.center.x,
+        y: state.view.extent.center.y,
+        z: state.view.zoom
+      }
     }
     var view = new MapView({
       container: "viewDiv",
@@ -144,22 +148,23 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       highlightOptions: {
         color: [0, 255, 255],
         fillOpacity: 0.6
-      }
+      },
     });
-    state.lastPosition =  { x: view.extent.center.x,
-                            y: view.extent.center.y,
-                            z: view.zoom
-                          }
+    view.zoom = 6;
+    view.center = [142,43]
+    state.view = view;
     // update features when the view is moved
     watchUtils.whenTrue(view, "stationary", function() {
       let { lastPosition } = state;
       // Get the new center of the view only when view becomes stationary.
-      if ( view.extent.center.x == lastPosition.x &&
-          view.extent.center.y == lastPosition.y &&
-          view.zoom == lastPosition.z
-      ) {
-        // nothing moved
-        return false
+      if (view.extent?.center && lastPosition?.x) {
+        if ( view.extent.center.x == lastPosition.x &&
+            view.extent.center.y == lastPosition.y &&
+            view.zoom == lastPosition.z
+        ) {
+          // nothing moved
+          return false
+        }
       }
       updateFeatures();
     });
@@ -959,7 +964,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     query.spatialRelationship = "intersects";
 
     var features = (await state.layer.queryFeatures(query)).features;
-    console.log('features:', features.length)
+    // console.log('features:', features.length)
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
 
@@ -1386,6 +1391,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   // create a new sequence, which is automatically connected to Tone.Transport
   var part = new Tone.Part((time, value) => {
+    // console.log('value:', value)
     synth.triggerAttackRelease(value.note, "16n", time, value.velocity);
   });
   part.start(0); // set the starting time of the part
