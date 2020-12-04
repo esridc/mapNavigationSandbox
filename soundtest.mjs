@@ -941,7 +941,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     } else if (!value) { // keyboard mode off
       statusAlert('KeyboardMode off.');
       // hide keyboard mode menu
-      state.view.ui.remove('keyboardModeMenu');
+      // state.view.ui.remove('keyboardModeMenu');
       setMode(null)
       state.view.popup.close();
       window.removeEventListener('keydown', keyboardModeHandler);
@@ -950,8 +950,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   async function updateFeatures() {
-    console.log('updating features')
-    let {view, layer} = state;
+        let {view, layer} = state;
     if (!view) return false;
     let layerView = await view.whenLayerView(layer);
     // query visible features
@@ -1038,8 +1037,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         // if a feature is selected, select the next feature
         } else {
           selectFeature(featureIndex + 1);
-          // sound.stop();
-          // sound.start();
         }
       }
       e.preventDefault();
@@ -1263,6 +1260,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       } else if (e.key == 'c') {
         state.view.goTo(keyboardModeState.feature)
       } else if (e.key == 'z') {
+        // TODO: error noises when hitting zoom and extent limits
+        // if (state.view.zoom < 22) { // effective view.constraints.maxZoom
+        // }
         state.view.goTo({
           target: keyboardModeState.feature, // defaults to null
           zoom: state.view.zoom + 2
@@ -1369,24 +1369,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // let features = arrangeFeatures();
     var notes = arrangeFeatures();
 
-    // var notes = [];
-    // var max = 10;
-    // for (var x=0; x < max; x++) {
-    //   notes.push(
-    //     // 130.813 = C3
-    //     {time: x/max, note: 130.813 * pentatonic[rand(pentatonic.length)] * (rand(4)+1), velocity: .5}
-    //     // {time: x/max, note: 130.813 *.5 * chromatic[rand(chromatic.length)] * (rand(4)+1), velocity: .3}
-    //     // {time: x/max, note: 130.813 * 130.813 * Math.random(), velocity: .3}
-    //     // {time: x/max, note: 130.813 * 10 * Math.random(), velocity: .3}
-
-    //     // standalone notes
-    //     // 130.813 *.5 * pentatonic[rand(pentatonic.length)] * (rand(4)+1)
-    //   )
-    // };
-
     for (let x = 0; x < notes.length; x++) {
       part.add(notes[x]);
     }
+
     // return notes;
   }
 
