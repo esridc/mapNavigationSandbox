@@ -1186,6 +1186,27 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
       });
       statusAlert('Popup: '+content.meta);
+
+      if (keyboardModeState.sonar) {
+        let pitch = getPitch(feature);
+        part.clear();
+        part.add({time: 0, note: pitch, velocity: .5});
+
+        // set decay with a sigmoid function
+        // TODO: DRY this out
+        let z = state.view.zoom;
+        let maxDecay = 3; // seconds
+        let a = .8; // slowness of dropoff
+        let decay = (2 * maxDecay * (a ** z)/(a ** z + 1));
+        reverb.set({decay: ""+decay}); // needs to be a string, for reasons
+
+        // restart the playback timeline
+        if (Tone.Transport.state == "started") {
+          Tone.Transport.stop();
+        }
+        Tone.Transport.start();
+
+      }
     });
   }
 
@@ -1475,6 +1496,25 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }
     return score;
 
+  }
+
+  // get the pitch of a single feature
+  // TODO: DRY this out w/arrangeFeatures()
+  function getPitch(feature) {
+    let position = webMercatorUtils.geographicToWebMercator(new Point([feature.geometry.longitude, feature.geometry.latitude]));
+
+    let extent = state.view.extent;
+    var oldLatMin = extent.ymin;
+    var oldLatMax = extent.ymax;
+
+    var newLatMin = 0;
+    let samples = 100;
+    var newLatMax = samples - 1; // if using a scale
+
+    let newLatVal = rescale(position.y, oldLatMin, oldLatMax, newLatMin, newLatMax);
+    let root = 65.4 // c2
+    let scale = getPentatonic(samples);
+    return root * scale[Math.floor(newLatVal)] // use a scale
   }
 
   // scale a value from the range oldMin-oldMax to the range newMin-newMax
