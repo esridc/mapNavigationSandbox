@@ -912,7 +912,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       console.log('sonar checkbox');
       // setMode("sound");
       // toggle sound
-      if (e.currentTarget.checked) sonarSetup();
+      if (e.currentTarget.checked) {
+        keyboardModeState.sonar = true;
+        sonarSetup();
+      }
       else Tone.Transport.stop()
     });
     // document.querySelector('#helpButton').addEventListener('click', (e) => {
@@ -1008,11 +1011,21 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // main keyboardMode menu
   function menuHandler(e) {
     if (e.key == "Escape") {
-      setKeyboardMode(false);
+      if (document.activeElement == document.getElementById("keyboardModeMenu")) {
+        setKeyboardMode(false);
+      } else {
+        document.getElementById("keyboardModeMenu").focus();
+      }
     }
-    // if (e.key == "Tab") {
-    //   sonarSetup();
-    // }
+    if (e.key == "Tab") {
+      // if (e.shiftKey && document.activeElement == document.getElementById("featureSelectionModeButton")) {
+      //   document.getElementById("sonarModeCheckbox").focus();
+      //   e.preventDefault();
+      // } else if (document.activeElement == document.getElementById("sonarModeCheckbox")) {
+      //   document.getElementById("featureSelectionModeButton").focus();
+      //   e.preventDefault();
+      // }
+    }
   }
 
   // featureSelection mode
@@ -1316,6 +1329,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           ping();
         }
 
+      } else if (e.key in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+        // do a sonar ping
+        if (keyboardModeState.mode) { // if keyboardModeState has been set
+          state.view.zoom = e.key;
+        }
+
       }
       // keyboardModeHandler(e);
     }
@@ -1427,7 +1446,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function sonarSetup() {
-    keyboardModeState.sonar = true;
     Tone.start();
     ping();
   }
