@@ -1447,19 +1447,26 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       let position = webMercatorUtils.geographicToWebMercator(new Point(positions[x]));
       // shift range of latitudes to range of scale indices
       let oldLatVal = position.y;
-      let newLatVal = (((oldLatVal - oldLatMin) * (newLatMax - newLatMin)) / (oldLatMax - oldLatMin)) + newLatMin;
+      // let newLatVal = (((oldLatVal - oldLatMin) * (newLatMax - newLatMin)) / (oldLatMax - oldLatMin)) + newLatMin;
+      let newLatVal = rescale(oldLatVal, oldLatMin, oldLatMax, newLatMin, newLatMax);
       // choose a pitch
       let pitch = root * scale[Math.floor(newLatVal)] // use a scale
       // let pitch = root * (octaves * newLatVal + 1) // use arbitrary pitches
 
       // shift range of longitudes to range of time values
       let oldLongVal = position.x;
-      let newLongVal = (((oldLongVal - oldLongMin) * (newLongMax - newLongMin)) / (oldLongMax - oldLongMin)) + newLongMin;
+      // let newLongVal = (((oldLongVal - oldLongMin) * (newLongMax - newLongMin)) / (oldLongMax - oldLongMin)) + newLongMin;
+      let newLongVal = rescale(oldLongVal, oldLongMin, oldLongMax, newLongMin, newLongMax);
 
       score.push({time: newLongVal, note: pitch, velocity: .5});
     }
     return score;
 
+  }
+
+  // scale a value from the range oldMin-oldMax to the range newMin-newMax
+  function rescale(val, oldMin, oldMax, newMin, newMax) {
+    return (((val - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
   }
 
   initKeyboardMode();
