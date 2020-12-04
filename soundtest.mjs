@@ -150,8 +150,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         fillOpacity: 0.6
       },
     });
+
+    // hokkaido tests
     view.zoom = 6;
     view.center = [142,43]
+
     state.view = view;
     // update features when the view is moved
     watchUtils.whenTrue(view, "stationary", function() {
@@ -901,10 +904,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       setMode("feature");
       console.log('feature mode activated');
     });
-    document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
-      // setMode("featureSelection");
-      console.log('verbosity dropdown');
-    });
+    // document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
+    //   // setMode("featureSelection");
+    //   console.log('verbosity dropdown');
+    // });
     document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
       console.log('sonar checkbox');
       // setMode("sound");
@@ -912,10 +915,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       if (e.currentTarget.checked) sonarSetup();
       else Tone.Transport.stop()
     });
-    document.querySelector('#helpButton').addEventListener('click', (e) => {
-      setMode("help");
-      console.log('help button');
-    });
+    // document.querySelector('#helpButton').addEventListener('click', (e) => {
+    //   setMode("help");
+    //   console.log('help button');
+    // });
   }
 
   function setMode(mode) {
@@ -1059,7 +1062,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         if (!document.getElementById("popup-content")) {
           // make a popup
         }
-        document.getElementById("popup-content").focus();
+        state.view.popup.container.focus();
         statusAlert(`Feature #${featureIndex + 1} selected.`)
         e.preventDefault();
       } else {
@@ -1071,6 +1074,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   function featureHandler(e) {
     if (e.key == "Enter") { // go into selected feature
+    }
+    if (e.key == "Escape") { // go back to feature selection mode
+      setMode("featureSelection");
+      document.activeElement.blur();
     }
   }
 
@@ -1135,7 +1142,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       if (err.name === 'AbortError') {
         console.log('Request aborted');
       } else {
-        console.error('Error encountered', err);
+        // console.error('Error encountered', err);
+        document.getElementById('placeLabel').innerHTML = "";
       }
     });
 
@@ -1190,6 +1198,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         // Set the location of the popup to the clicked location
         location: { latitude: feature.geometry.latitude, longitude: feature.geometry.longitude},
       });
+      view.popup.container.setAttribute('tabindex', '0');
       statusAlert('Popup: '+content.meta);
 
       if (keyboardModeState.sonar) {
@@ -1371,12 +1380,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // EFFECTS
 
   // const panner = new Tone.Panner(1).toDestination();
+  var comp = new Tone.Compressor(-30,12);
   var reverb = new Tone.Reverb(2.4).toDestination();
   //  panner.pan.rampTo(-1, 0.5);
 
   // COMPONENTS
 
-  const synth = new Tone.PolySynth({maxPolyphony: 128}).chain(reverb).toDestination(); // wet
+  const synth = new Tone.PolySynth({maxPolyphony: 128}).chain(comp, reverb).toDestination(); // wet
   // const synth = new Tone.PolySynth({maxPolyphony: 128}).toDestination(); // dry
 
   // set synth parameters
