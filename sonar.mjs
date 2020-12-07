@@ -65,8 +65,22 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     'Citclops Water': "8581a7460e144ae09ad25d47f8e82af8_0",
   }
 
+  // // URL params
+  // const params = new URLSearchParams(window.location.search);
+  // var env = 'prod';
+  // if (Array.from(params).length != 0) {
+  //   var datasetId = params.get('dataset');
+  //   const datasetSlug = params.get('slug');
+  //   env = params.get('env');
+  //   await loadDataset({ datasetId, datasetSlug, env });
+  // } else {
+  //   var datasetId = datasetList.options[datasetList.selectedIndex].value;
+  //   await loadDataset({ datasetId, env });
+  // }
+  
   // track state
   var state = {};
+  var keyboardModeState = {};
   function initState() {
     state = {
       dataset: null,
@@ -79,7 +93,20 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       fieldName: null,
       lastPosition: null,
     }
+    keyboardModeState = {
+      features: null,
+      feature: null,
+      featureIndex: 0,
+      mode: null,
+      place: null,
+      sonar: null,
+      verbose: null,
+      lastPlace: null,
+    };
   }
+
+
+
 
   const DATASET_FIELD_UNIQUE_VALUES = {}; // cache by field name
   var highlight = null;
@@ -152,11 +179,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     });
 
     // hokkaido tests
-    view.zoom = 6;
-    view.center = [142,43]
+    // view.zoom = 6;
+    // view.center = [142,43]
+
+    // gelato tests
+    // view.zoom = 6;
+    view.center = [23.73018567290529,37.9728063923976]
 
     state.view = view;
     // update features when the view is moved
+
     watchUtils.whenTrue(view, "stationary", function() {
       let { lastPosition } = state;
       // Get the new center of the view only when view becomes stationary.
@@ -908,6 +940,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // toggle verbose
       if (e.currentTarget.checked) {
         keyboardModeState.verbose = true;
+        announceRegion();
       }
       else {
         keyboardModeState.verbose = false;
@@ -934,6 +967,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function setMode(mode) {
     keyboardModeState.mode = mode;
     modeStatus(mode);
+    statusAlert(mode)
   }
 
   async function setKeyboardMode(value) {
@@ -968,9 +1002,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   async function updateFeatures() {
-        let {view, layer} = state;
+    let {view, layer} = state;
     if (!view) return false;
-    let layerView = await view.whenLayerView(layer);
+    let layerView = await view.whenLayerView(layer).then( layerView => {
+      console.log('👍')
+    }, (e) => {
+      console.log('no layerview:', e);
+    });
     // query visible features
     var query = layer.createQuery();
     query.geometry = view.extent;
@@ -996,16 +1034,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }
 
   }
-
-  var keyboardModeState = {
-    features: null,
-    feature: null,
-    featureIndex: 0,
-    mode: null,
-    place: null,
-    sonar: null,
-    verbose: null,
-  };
 
   // mode event handler
   // dedicated to Larry Tesler
@@ -1239,9 +1267,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         // set decay with a sigmoid function
         // TODO: DRY this out
         let z = state.view.zoom;
-        let maxDecay = 3; // seconds
+        let maxDecay = 8; // seconds
         let a = .8; // slowness of dropoff
         let decay = (2 * maxDecay * (a ** z)/(a ** z + 1));
+        console.log('decay:', decay)
         reverb.set({decay: ""+decay}); // needs to be a string, for reasons
 
         // restart the playback timeline
@@ -1278,6 +1307,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         }
       }
     } else {
+      console.log(e)
       // global arrow key navigation – replace default
 
       let weight = .85; // weighted average – move this percent from the center to the edge
@@ -1331,11 +1361,23 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         state.view.goTo({
           target: keyboardModeState.feature, // defaults to null
           zoom: state.view.zoom + 2
+        }).then( async () => {
+          if (keyboardModeState.verbose) {
+            await state.view.whenLayerView().then(
+              statusAlert('z'+state.view.zoom)
+            )
+          }
         });
 
       } else if (e.key == 'x') {
         state.view.goTo({
           zoom: state.view.zoom - 2
+        }).then( async () => {
+          if (keyboardModeState.verbose) {
+            await state.view.whenLayerView().then(
+              statusAlert('z'+state.view.zoom)
+            )
+          }
         });
 
       } else if (e.key == 's') {
@@ -1352,7 +1394,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           state.view.zoom = e.key;
         }
 
+      } else if (e.key == "Backspace") {
+        statusAlert(" ");
+        e.preventDefault();
       }
+
+
       // keyboardModeHandler(e);
     }
     // fix browser reloading when tabbing to the page when map has focus
@@ -1382,7 +1429,15 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     return (e.metaKey ? "cmd " : "") + (e.shiftKey ? "shift " : "") + keyName;
   }
   function focusStatus(msg) { document.getElementById("focusStatus").innerHTML = msg; }
-  function keyStatus(msg) { document.getElementById("keyStatus").innerHTML = msg; }
+  function keyStatus(msg) {
+    let div = document.getElementById("keyStatus");
+    div.innerHTML = msg;
+    // div.classList.add("flashMe");
+    // setTimeout(() => {
+    //   div.innerHTML = '';
+    // }, 2000);
+
+  }
   function modeStatus(msg) {
     document.getElementById("modeStatus").innerHTML = msg;
   }
@@ -1472,7 +1527,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // set decay with a sigmoid function
     let z = state.view.zoom;
-    let maxDecay = 3; // seconds
+    let maxDecay = 8; // seconds
     let a = .8; // slowness of dropoff
     let decay = (2 * maxDecay * (a ** z)/(a ** z + 1));
     reverb.set({decay: ""+decay}); // needs to be a string, for reasons
@@ -1515,7 +1570,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var newLatMax = pitches - 1; // if using a scale
     // let newLatMax = 1; // if using arbitrary pitches
     // TODO: bin by longitude, map quantity to velocity
-    let notes = Math.min(features.length, 100); // 100 = maximum number of notes
+    let notes = Math.min(features.length, 128); // 100 = maximum number of notes
     // let root = 32.70 // c1
     let root = 65.4 // c2
     // let root = 130.813 // c3
@@ -1579,24 +1634,37 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function announceRegion() {
+    let controller = new AbortController();
+    let signal = controller.signal;
+
     let location = { lon: state.view.center.longitude, lat: state.view.center.latitude };
-    let url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
+    let url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&langCode=en&location=${location.lon},${location.lat}`;
+    console.log(url)
     esriRequest(url, {
       signal,
-      responseType: "json"
+      responseType: "json",
     }).then(function(response){
-      // console.log('queue:', requests.map(r => r.count))
-      // The requested data
+      console.log('response?')
       var geoJson = response.data;
+      console.log(geoJson.address)
       // track this in state so the popup knows whether to cancel any outstanding requests
-      console.log(geoJson.address.LongLabel);
-      // document.getElementById('placeLabel').innerHTML = geoJson.address.LongLabel;
+      let z = state.view.zoom;
+      if (z < 6) name = geoJson.address.Region;
+      else if (z < 14) name = geoJson.address.Match_addr;
+      else if (z < 20) name = geoJson.address.LongLabel;
+      name == name || geoJson.address.ShortLabel;
+      console.log('region:', name)
+      if (name != keyboardModeState.lastPlace) {
+        statusAlert(name);
+        keyboardModeState.lastPlace = name;
+      }
+
+
     }).catch((err) => {
       if (err.name === 'AbortError') {
         console.log('Request aborted');
       } else {
-        // console.error('Error encountered', err);
-        // document.getElementById('placeLabel').innerHTML = "";
+        console.log('Unknown error:', err)
       }
     });
   }
