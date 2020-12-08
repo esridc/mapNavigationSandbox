@@ -1439,7 +1439,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
   function arrangeFeatures() {
     let features = keyboardModeState.features;
-
+    if (state.view.graphics) state.view.graphics.removeAll();
     // features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
 
     //
@@ -1447,7 +1447,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     //
 
     var positions = features.map(a => [r(a.geometry.x), r(a.geometry.y)]);
-    console.log(positions.length, ':', positions)
+    // console.log(positions.length, ':', positions)
     // positions.sort((a, b) => (a[0] > b[0] ? 1 : -1)) // sort
     // var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
     // var max = positions.reduce((a, b) => Math.max(a, b[1]), Number.NEGATIVE_INFINITY);
@@ -1488,7 +1488,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     longMin = 0;
     latMin = 0;
 
-    let pitches = 26; // maximum number of pitches
+    let root = 130.813 // c3
+    // let octaves = 5;
+    // let notes = Math.min(features.length, 100); // 100 = maximum number of notes
+    let notes = 3; // 100 = maximum number of notes, also number of time divisions
+    // let root = 32.70 // c1
+    // let root = 65.4 // c2
+    
+    let pitches = 3; // maximum number of pitches
 
     let scale = getPentatonic(pitches);
     var score = [];
@@ -1499,12 +1506,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // var newLatMax = pitches - 1; // if using a scale
     // let newLatMax = 1; // if using arbitrary pitches
 
-    // let notes = Math.min(features.length, 100); // 100 = maximum number of notes
-    let notes = 100; // 100 = maximum number of notes, also number of time divisions
-    // let root = 32.70 // c1
-    let root = 65.4 // c2
-    // let root = 130.813 // c3
-    // let octaves = 5;
 
     console.log('longRange:', longRange)
     console.log('latRange:', latRange)
@@ -1517,30 +1518,52 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let xExtent = [0, longMax];
     let yExtent = [0, latMax];
     var bins = rectbin(positions, xExtent, yExtent);
-    console.log(bins.filter(a => {
-      if (a.length > 0) return a;
-      else return false;
-    }))
+    // console.log(bins.filter(a => {
+    //   if (a.length > 0) return a;
+    //   else return false;
+    // }))
 
     let duration = 1; // number of seconds per sonar ping
     let maxVelocity = bins.reduce((a, b )=> Math.max(a, b.length), 0);
-    console.log('maxvelocity:', maxVelocity)
+    console.log('bins:', bins.length, 'maxvelocity:', maxVelocity)
     // debugger
     let volume = 2; // this one goes to Infinity
 
     // convert bins to times and pitches, with bin count mapped to velocity
-    for (var x = 0; x < bins.length; x++) {
+    var output = [];
+    var paths = [];
+    for (var b = 1; b < bins.length; b++) {
+      paths.push( [[bins[b-1].x, bins[b-1].y]/10, [bins[b].x, bins[b-1].y/10]] );
+    }
+    console.log(paths)
+    var lineSymbol = {
+      type: "simple-line", // autocasts as SimpleLineSymbol()
+      color: 'black',
+      width: 1
+    };
+    var line = {
+      type: "polyline",
+      paths,
+      spatialReference: state.view.spatialReference
+    }
+    state.view.graphics.add({type: 'graphic', geometry: line, symbol: lineSymbol,})
+    // state.layer.applyEdits();
+
+      for (var x = 0; x < bins.length; x++) {
+      var note = 0;
       if (bins[x].length) { // if it has any entries
-        console.log(bins[x])
         let time = bins[x].i * duration/notes;
-        let note = root * scale[ Math.max(0, Math.min(pitches, Math.floor(bins[x].j))) ];
+        note = root * scale[ Math.max(0, Math.min(pitches, Math.floor(bins[x].j))) ];
         // if (!note) debugger
         let velocity = Math.max(.1, (bins[x].length / maxVelocity)) * volume;
         // console.log(velocity)
         score.push({ time, note, velocity });
       }
+      output.push({bin: x, length: bins[x].length, i: bins[x].i, j: bins[x].j, x: bins[x].x, y: bins[x].y, note: note})
     }
-    console.log(score);
+
+    console.table(output)
+    // console.log(score);
     // debugger
 
     //
