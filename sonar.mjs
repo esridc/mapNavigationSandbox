@@ -38,6 +38,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   normalizeUtils,
   Polyline,
   Graphic,
+  GeometryService,
+  DistanceParameters,
+
+  SpatialReference,
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
@@ -66,6 +70,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/geometry/support/normalizeUtils",
   "esri/geometry/Polyline",
   "esri/Graphic",
+  "esri/tasks/GeometryService",
+  "esri/tasks/support/DistanceParameters",
+
+  "esri/geometry/SpatialReference",
 ]);
 
   // data urls
@@ -713,6 +721,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // update state
     state = {...state, layer, view, renderer, bgColor, legend}
+    keyboardModeState.sonar = true;
   } // end autoStyle
 
   //
@@ -967,7 +976,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     query.spatialRelationship = "intersects";
 
     var features = (await state.layer.queryFeatures(query)).features;
-    console.log('features:', features.length)
+    // console.log('features:', features.length)
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
 
@@ -1212,7 +1221,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         if (Tone.Transport.state == "started") {
           Tone.Transport.stop();
         }
-        Tone.Transport.start();
+        // Tone.Transport.start();
 
       }
     });
@@ -1455,7 +1464,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // GET PITCHES
     //
 
-    var positions = features.map(a => [r(a.geometry.x), r(a.geometry.y)]);
+    var positions = features.map(a => [a.geometry.x, a.geometry.y]);
+    // var positions = features.map(a => [r(a.geometry.x), r(a.geometry.y)]);
     // console.log(positions.length, ':', positions)
     // positions.sort((a, b) => (a[0] > b[0] ? 1 : -1)) // sort
     // var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
@@ -1464,84 +1474,112 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // var viewLatMin = extent.ymin;
     // var viewLatMax = extent.ymax;
 
-    var positionsxMin = positions.reduce((a, b )=> Math.min(a, b[0]), Infinity);
-    var positionsyMin = positions.reduce((a, b )=> Math.min(a, b[1]), Infinity);
-    var positionsxMax = positions.reduce((a, b )=> Math.max(a, b[0]), 0);
-    var positionsyMax = positions.reduce((a, b )=> Math.max(a, b[1]), 0);
+    // var positionsxMin = positions.reduce((a, b )=> Math.min(a, b[0]), Infinity);
+    // var positionsyMin = positions.reduce((a, b )=> Math.min(a, b[1]), Infinity);
+    // var positionsxMax = positions.reduce((a, b )=> Math.max(a, b[0]), 0);
+    // var positionsyMax = positions.reduce((a, b )=> Math.max(a, b[1]), 0);
 
     let extent = view.extent;
+    // find the view extent
+    var xMin = extent.xmin;
+    var yMin = extent.ymin;
+    var xMax = extent.xmax;
+    var yMax = extent.ymax;
 
-    // account for zooms which show > 360° degrees of longitude
-    view.extent.xmin
+    let EARTH_CIRC = 40007862.91725089 // found with esri's GeometryService.distance() function
 
+    // is the extent width > EARTH_CIRC?
+    // then the map is zoomed out so far it's showing the left and right sides of the z0 tile,
+    // use the edge of the tile instead of the extent.x
 
+    let center = [view.center.x, view.center.y]
+    if (extent.xmin < view.center.x - EARTH_CIRC / 2 || extent.xmax > view.center.x + EARTH_CIRC / 2) {
+      // account for wraparound
+      let wrapFactor = (view.center.x / EARTH_CIRC);
+      wrapFactor = Math.ceil(Math.round(wrapFactor));
 
-    // find the ultimate range of visible locations
-    var xMin = Math.min(extent.xmin, positionsxMin)
-    var yMin = Math.min(extent.ymin, positionsyMin)
-    var xMax = Math.max(extent.xmax, positionsxMax)
-    var yMax = Math.max(extent.ymax, positionsyMax)
+      // TODO: do I need to wraparound all the feature positions? If I do, should I use geo or webmercator?
+      // positions = positions.map(a => [a[0] + (EARTH_CIRC * wrapFactor), a[1] + (EARTH_CIRC * wrapFactor)]);
+      // positions = positions.map(a => [a[0] + (360 * wrapFactor), a[1] + (360 * wrapFactor)]);
+      center[0] = center[0] + (EARTH_CIRC * wrapFactor)
+
+      xMin = center[0] - (EARTH_CIRC / 2);
+      xMax = center[0] + (EARTH_CIRC / 2);
+    }
+
+    // don't use this: keep the pitches relative to the viewport, not the visible map
+
+    // let WEB_MERCATOR_HALF_HEIGHT = 20037508.626927227; // meters from equator to the maximum latitude of the web mercator projection
+    // are the top/bottom edges of the map showing?
+    // is the extent ymax > 20037508.626927227?
+    // is the extent ymax > 20037508.626927227?
+    // yMax = Math.max(WEB_MERCATOR_HALF_HEIGHT, extent.ymax);
+    // yMin = Math.min(-WEB_MERCATOR_HALF_HEIGHT, extent.ymin);
 
     var xRange = xMax - xMin;
     var yRange = yMax - yMin;
 
-    // reduce precision
-    xRange = r(xRange)
-    yRange = r(yRange)
-    xMax = r(xMax)
-    yMax = r(yMax)
-    xMin = r(xMin)
-    yMin = r(yMin)
-
-    // shift everything to make the minimum values 0, because rectbin can't handle negative values
-    // console.log('xMin:', xMin, 'yMin:', yMin)
-    // console.log('1xMax:', xMax, 'yMax:', yMax)
-    xMax -= xMin;
-    yMax -= yMin;
-    // console.log('2xMax:', xMax, 'yMax:', yMax)
-    positions = positions.map(a => [a[0]-xMin, a[1]-yMin]);
-    xMin = 0;
-    yMin = 0;
-
-    // circumference of earth: 40075000 m
-    // let wrapFactor = Math.floor( state.view.center.x / (40075000/2) );
-    let wrapFactor = (state.view.center.x / 40075000);
-    let wrapFactor = Math.ceil(Math.round(wrapFactor));
-    let center = webMercatorUtils.xyToLngLat(state.view.center.x, state.view.center.y);
-    let newCenter = center[0] + (360 * wrapFactor)
-    console.log('center:', center, '\nwrap:', wrapFactor, '\nnew:', newCenter);
-
-
     let root = 130.813 // c3
-    // let octaves = 5;
-    // let notes = Math.min(features.length, 100); // 100 = maximum number of notes
-    let notes = 3; // 100 = maximum number of notes, also number of time divisions
+
+    let notes = 1; // maximum number of notes, also number of time divisions
     // let root = 32.70 // c1
     // let root = 65.4 // c2
 
-    let pitches = 3; // maximum number of pitches
+    let pitches = 1; // maximum number of pitches
 
     let scale = getPentatonic(pitches);
     var score = [];
 
-    // let oldLatMin = viewLatMin;
-    // let oldLatMax = viewLatMax;
-    // let newLatMin = 0;
-    // var newLatMax = pitches - 1; // if using a scale
-    // let newLatMax = 1; // if using arbitrary pitches
+    // rectbin tests
+    var negrectbin = d3.rectbin()
+    .dx(1)
+    .dy(1);
 
+    var negbins = negrectbin([
+      [-2.1, -2],
+      [-2, -1],
+      [-2, 0],
+      [-2, 1],
+      [-2, 2],
+      [-1, -2],
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [-1, 2],
+      [0, -2],
+      [0, -1],
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [1, -2],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+      [1, 2],
+      [2, -2],
+      [2, -1],
+      [2, 0],
+      [2, 1],
+      [2, 2]
+    ], [-2.1,2], [-2,2]);
 
-    // console.log('xRange:', xRange)
-    // console.log('yRange:', yRange)
+    console.log('notes:', notes, 'dx:', xRange / notes)
+    console.log('pitches:', pitches, 'dy:', yRange / pitches)
 
+    // set up rectbin
     var rectbin = d3.rectbin()
     .dx(xRange / (notes))
     .dy(yRange / (pitches));
 
     // the result of the rectbin layout
-    let xExtent = [0, xMax];
-    let yExtent = [0, yMax];
+    let xExtent = [xMin, xMax];
+    let yExtent = [yMin, yMax];
+    console.log('extents:', xExtent, yExtent)
+
+    // bin the positions
     var bins = rectbin(positions, xExtent, yExtent);
+    console.log(bins)
+    // filter empty bins
     // console.log(bins.filter(a => {
     //   if (a.length > 0) return a;
     //   else return false;
@@ -1552,38 +1590,52 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // console.log('bins:', bins.length, 'maxvelocity:', maxVelocity)
     let volume = 2; // this one goes to Infinity
 
-    // convert bins to times and pitches, with bin count mapped to velocity
     var output = [];
     var paths = [];
-    // for (var b = 1; b < bins.length; b++) {
-      // paths.push( [[bins[b-1].x, bins[b-1].y]/10, [bins[b].x, bins[b-1].y/10]] );
-      // paths.push( [[bins[b-1].x*1000, bins[b-1].y*1000], [bins[b].x*1000, bins[b-1].y*1000]] );
-      // paths.push( [[bins[b-1].x*1000, bins[b-1].y*1000], [bins[b].x*1000, bins[b-1].y*1000]] );
-    // }
+
+    // console.log(bins.length, 'bins', bins);
+
+    for (var b = 1; b < bins.length; b++) {
+      paths.push( [[bins[b].x, bins[b].y], [bins[b-1].x, bins[b-1].y]] );
+    }
+    // console.log(paths.length, 'paths', paths)
+
+    // let start = webMercatorUtils.xyToLngLat(bins[0].x, bins[0].y);
+    // let end = webMercatorUtils.xyToLngLat(bins[bins.length-1].x, bins[bins.length-1].y);
+
+    let start = [bins[0].x, bins[0].y];
+    let end = [bins[bins.length-1].x, bins[bins.length-1].y];
+
+    // let start = webMercatorUtils.geographicToWebMercator(new Point(bins[0].x, bins[0].y));
+    // let end = webMercatorUtils.geographicToWebMercator(new Point(bins[bins.length-1].x, bins[bins.length-1].y));
     // debugger
-    let start = webMercatorUtils.xyToLngLat(bins[0].x, bins[0].y);
 
+    var binRange = [];
 
+    let x0 = start[0];
+    let y0 = start[1];
+    let x1 = end[0];
+    let y1 = end[1];
 
-    let end = webMercatorUtils.xyToLngLat(bins[bins.length-1].x, bins[bins.length-1].y);
-    // let start = webMercatorUtils.xyToLngLat(new Point([bins[0].x, bins[0].y]));
-    // let end = webMercatorUtils.xyToLngLat(new Point([bins[bins.length-1].x, bins[bins.length-1].y]));
-    // console.log('start:', JSON.stringify(start), 'end:', end)
-    // let start = webMercatorUtils.geographicToWebMercator(new Point([bins[0].x, bins[0].y]));
-    // let end = webMercatorUtils.geographicToWebMercator(new Point([bins[bins.length-1].x, bins[bins.length-1].y]));
-    let x0 = start.x;
-    let y0 = start.y;
-    let x1 = end.x;
-    let y1 = end.y;
-    x0 += xMin;
-    y0 += yMin;
-    x1 += xMin;
-    y1 += yMin;
-    paths.push( [[x0, y0], [x1, y0]] );
-    paths.push( [[x0, y0], [x0, y1]] );
-    paths.push( [[x0, y1], [x1, y1]] );
-    paths.push( [[x1, y0], [x1, y1]] );
-    // console.log('paths:', paths)
+    // let x0 = start.lon;
+    // let y0 = start.lat;
+    // let x1 = end.lon;
+    // let y1 = end.lat;
+
+    // let x0 = start.x;
+    // let y0 = start.y;
+    // let x1 = end.x;
+    // let y1 = end.y;
+
+    // binRange.push( [[x0, y0], [x1, y0]] );
+    // binRange.push( [[x0, y0], [x0, y1]] );
+    // binRange.push( [[x0, y1], [x1, y1]] );
+    // binRange.push( [[x1, y0], [x1, y1]] );
+    console.log(`map center: ${center}`);
+    console.log(`map x extents: [${xMin}, ${xMax}] y extents: [${yMin}, ${yMax}]`)
+    binRange.push( [[x0, y0], [x1, y1]] );
+    console.log(`bin x extents:  [${x0}, ${x1}] y extents: [${y0}, ${y1}]`)
+
     var lineSymbol = {
       type: "simple-line", // autocasts as SimpleLineSymbol()
       color: 'black',
@@ -1592,36 +1644,116 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var line = {
       type: "polyline",
       paths,
-      spatialReference: view.spatialReference
+      // spatialReference: view.spatialReference
     }
-    view.graphics.add({
+    var binRangeLine = {
+      type: "polyline",
+      paths: binRange,
+      spatialReference: SpatialReference.WebMercator
+    }
+
+    // var binlines = [];
+    // for (var x = 1; x < bins.length; x++) {
+    //   binlines.push([[bins[0].x, bins[0].y];
+    //   let end = [bins[bins.length-1].x, bins[bins.length-1].y];
+
+    // }
+    // for (var x = 0; x < bins.length; x++) {
+
+    // }
+
+
+    // view.graphics.add(new Graphic({
+    //   geometry: line,
+    //   symbol: lineSymbol,
+    //   // symbol: {
+    //   //   type: "simple-line", // autocasts as SimpleLineSymbol()
+    //   //   color: 'black',
+    //   //   width: 1
+    //   // },
+    // }))
+
+    state.view.graphics.add({
       type: 'graphic',
-      geometry: line,
-      symbol: lineSymbol,
+      geometry: binRangeLine,
+      // symbol: lineSymbol,
+      symbol: {
+        type: "simple-line", // autocasts as SimpleLineSymbol()
+        color: 'red',
+        width: 1
+      },
     })
 
-    const polyline = new Polyline({
-      paths: [
-        [150, 52.68],
-        [210, 49.5]
-      ],
-      spatialReference: view.spatialReference
-    });
+    // state.view.graphics.add({
+    //   type: 'graphic',
+    //   geometry: {
+    //     type: "point",
+    //     x: xMin,
+    //     // y: state.view.extent.ymin,
+    //     y: 0,
+    //     // spatialReference: new SpatialReference({ wkid: 4326 }),
+    //     spatialReference: view.spatialReference,
+    //   },
+    //   symbol: {
+    //     type: "simple-marker", // autocasts as SimpleLineSymbol()
+    //     color: 'red',
+    //     width: 5
+    //   },
+    // })
+    // state.view.graphics.add({
+    //   type: 'graphic',
+    //   geometry: {
+    //     type: "point",
+    //     x: xMax,
+    //     // y: state.view.extent.ymax,
+    //     y: 0,
+    //     // spatialReference: new SpatialReference({ wkid: 4326 }),
+    //     spatialReference: view.spatialReference,
+    //   },
+    //   symbol: {
+    //     type: "simple-marker", // autocasts as SimpleLineSymbol()
+    //     color: 'green',
+    //     width: 5
+    //   },
+    // })
 
-      normalizeUtils.normalizeCentralMeridian([polyline])
-      .then(function(polylines){
-        // debugger
-        view.graphics.add(new Graphic({
-          geometry: polylines[0],
-          symbol: lineSymbol,
-        }))
-        // console.log('?')
-      });
+    // var extents = [];
+    // x0 = extent.xmin;
+    // y0 = extent.ymin;
+    // x1 = extent.xmax;
+    // y1 = extent.ymax;
+    // extents.push( [[x0, y0], [x1, y0]] );
+    // extents.push( [[x0, y0], [x0, y1]] );
+    // extents.push( [[x0, y1], [x1, y1]] );
+    // extents.push( [[x1, y0], [x1, y1]] );
+    // var extentsline = {
+    //   type: "polyline",
+    //   paths: extents,
+    //   spatialReference: view.spatialReference
+    // }
+    // state.view.graphics.add({
+    //   type: 'graphic',
+    //   geometry: extentsline,
+    //   // symbol: lineSymbol,
+    //   symbol: {
+    //     type: "simple-line", // autocasts as SimpleLineSymbol()
+    //     color: 'orange',
+    //     width: 1
+    //   },
+    // })
 
 
-    // state.layer.applyEdits();
+    // const polyline = new Polyline({
+    //   paths: [
+    //     [150, 52.68],
+    //     [210, 49.5]
+    //   ],
+    //   spatialReference: view.spatialReference
+    // });
 
-      for (var x = 0; x < bins.length; x++) {
+
+    // convert bins to times and pitches, with bin count mapped to velocity
+    for (var x = 0; x < bins.length; x++) {
       var note = 0;
       if (bins[x].length) { // if it has any entries
         let time = bins[x].i * duration/notes;

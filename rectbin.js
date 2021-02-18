@@ -7,21 +7,21 @@
         y = rectbinY;
 
     function rectbin(points, xExtent = null, yExtent = null) {
-      dy = parseFloat(dy.toFixed(4));
-      dx = parseFloat(dx.toFixed(4));
       var binsById = {};
-      // console.log('xExtent?')
+      // console.log('Extent?', xExtent, yExtent)
       if (!xExtent) xExtent = d3.extent(points, function(d, i){ return x.call(rectbin, d, i) ;});
       if (!yExtent) yExtent = d3.extent(points, function(d, i){ return y.call(rectbin, d, i) ;});
 
       // debugger
-      d3.range(yExtent[0], yExtent[1] + dy, dy).forEach(function(Y){
+      // console.log(`d3.range(${yExtent[0]}, ${yExtent[1]}, ${dy}): ${d3.range(yExtent[0], yExtent[1], dy)}`)
+      d3.range(yExtent[0], yExtent[1] + dy, dx).forEach(function(Y){
         d3.range(xExtent[0], xExtent[1] + dx, dx).forEach(function(X){
           // console.log('XY', X, Y)
           var py = Y / dy;
           var pj = trunc(py);
           var px = X / dx;
           var pi = trunc(px);
+          // debugger
           var id = pi + '-' + pj;
           var bin = binsById[id] = [];
           bin.i = pi;
@@ -38,7 +38,12 @@
 
         var id = pi + '-' + pj;
         var bin = binsById[id];
-        bin.push(point);
+        try {
+          bin.push(point);
+        } catch(e) {
+          console.log(e)
+          // debugger
+        }
       });
       return d3.values(binsById);
     }
