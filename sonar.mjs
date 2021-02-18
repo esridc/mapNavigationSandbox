@@ -1002,6 +1002,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   async function updateFeatures() {
+    console.log('updating features')
     let {view, layer} = state;
     if (!view) return false;
     let layerView = await view.whenLayerView(layer).then( layerView => {
@@ -1312,13 +1313,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
       let weight = .85; // weighted average – move this percent from the center to the edge
 
+      // navigate map view east
       if (e.key == 'ArrowRight') {
         state.view.goTo(new Point({
           x: (1 - weight) * state.view.center.x + weight * state.view.extent.xmax,
           y: state.view.center.y,
           spatialReference: state.view.spatialReference
         }));
+        keyboardModeState.verbose && statusAlert('east');
 
+      // navigate map view west
       } else if (e.key == 'ArrowLeft') {
 
         state.view.goTo(new Point({
@@ -1326,7 +1330,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           y: state.view.center.y,
           spatialReference: state.view.spatialReference
         }));
+        keyboardModeState.verbose && statusAlert('west');
 
+      // navigate map view north
       } else if (e.key == 'ArrowUp') {
         // 85°03'04.0636 = web mercator latitude maximum extent
         if (state.view.center.y < 20037508.34) { // northern extent of web mercator
@@ -1336,10 +1342,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
             y: Math.min(targetY, 20037508.34),
             spatialReference: state.view.spatialReference
           }));
+          keyboardModeState.verbose && statusAlert('north');
         } else {
           console.log('BZZT north pole')
+          keyboardModeState.verbose && statusAlert('north pole');
         }
 
+      // navigate map view south
       } else if (e.key == 'ArrowDown') {
         if (state.view.center.y > -20037508.34) { // southern extent of web mercator
           let targetY = (1 - weight) * state.view.center.y + weight * state.view.extent.ymin;
@@ -1348,18 +1357,25 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
             y: Math.max(targetY, -20037508.34),
             spatialReference: state.view.spatialReference
           }));
+          keyboardModeState.verbose && statusAlert('south');
+
         } else {
           console.log('BZZT south pole')
+          keyboardModeState.verbose && statusAlert('south pole');
         }
 
+      // center view on selected feature
       } else if (e.key == 'c') {
         state.view.goTo(keyboardModeState.feature)
+        keyboardModeState.verbose && statusAlert('centering on feature');
+
+      // zoom in
       } else if (e.key == 'z') {
         // TODO: error noises when hitting zoom and extent limits
         // if (state.view.zoom < 22) { // effective view.constraints.maxZoom
         // }
         state.view.goTo({
-          target: keyboardModeState.feature, // defaults to null
+          // target: keyboardModeState.feature, // defaults to null
           zoom: state.view.zoom + 2
         }).then( async () => {
           if (keyboardModeState.verbose) {
@@ -1369,6 +1385,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           }
         });
 
+      // zoom out
       } else if (e.key == 'x') {
         state.view.goTo({
           zoom: state.view.zoom - 2
@@ -1380,6 +1397,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           }
         });
 
+      // toggle sonar mode
       } else if (e.key == 's') {
         // do a sonar ping
         if (!keyboardModeState.sonar) {
@@ -1388,12 +1406,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           ping();
         }
 
+      // set zoom level
       } else if (e.key in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
         // do a sonar ping
         if (keyboardModeState.mode) { // if keyboardModeState has been set
           state.view.zoom = e.key;
         }
 
+      // unused
       } else if (e.key == "Backspace") {
         statusAlert(" ");
         e.preventDefault();

@@ -10,6 +10,7 @@ This demo shows some experimental keyboard navigation methods. The "keyboard mod
 - <kbd>Tab</kbd> to step forward through the features in the current viewport, sorted by longitude.
 - <kbd>Shift-Tab</kbd> to step backwards.
 - <kbd>Enter</kbd> to enter Feature Mode for a selected feature.
+- <kbd>c</kbd> to center the map on the selected feature.
 - Screen readers will announce the title of each feature's popup.
 
 **Feature Mode:**
@@ -25,8 +26,8 @@ This mode will perform a "sonar ping" on every map navigation, which converts th
 
 **Global keys:**
 - <kbd>s</kbd> will perform a "sonar ping".
-- <kbd>z</kbd> will zoom in two zoom levels, and if a feature is selected, will recenter the view on that feature.
-- <kbd>x</kbd> will zoom out two zoom levels, and if a feature will recenter toward the center of the features' extents.
+- <kbd>z</kbd> will zoom in two zoom levels.
+- <kbd>x</kbd> will zoom out two zoom levels.
 - <kbd>numkeys</kbd> will zoom to the specified key's zoom level.
 
 **Other behavior:**
