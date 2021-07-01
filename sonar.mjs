@@ -721,7 +721,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // update state
     state = {...state, layer, view, renderer, bgColor, legend}
-    keyboardModeState.sonar = true;
+    // keyboardModeState.sonar = true;
   } // end autoStyle
 
   //
@@ -969,11 +969,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   async function updateFeatures() {
         let {view, layer} = state;
     if (!view) return false;
-    let layerView = await view.whenLayerView(layer);
+    // let layerView = await view.whenLayerView(layer);
     // query visible features
     var query = layer.createQuery();
     query.geometry = view.extent;
-    query.spatialRelationship = "intersects";
+    console.log('querying map by extent:', view.extent);
+    // query.spatialRelationship = "intersects";
+    query.spatialRelationship = "contains";
 
     var features = (await state.layer.queryFeatures(query)).features;
     // console.log('features:', features.length)
@@ -1428,6 +1430,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function sonarSetup() {
+    console.log('sonarSetup');
     keyboardModeState.sonar = true;
     Tone.start();
     ping();
@@ -1455,6 +1458,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     return parseFloat( (i / 1000).toFixed(4) );
   }
   function arrangeFeatures() {
+    console.log('\n\n---\n\n')
+
     let { view } = state;
     let features = keyboardModeState.features;
     if (view.graphics) view.graphics.removeAll();
@@ -1494,9 +1499,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     let center = [view.center.x, view.center.y]
     if (extent.xmin < view.center.x - EARTH_CIRC / 2 || extent.xmax > view.center.x + EARTH_CIRC / 2) {
-      // account for wraparound
+      // account for wraparound – add or subtract the distance around the earth if necessary
+      // to ensure the minimum is always less than the maximum, and the center is between them
       let wrapFactor = (view.center.x / EARTH_CIRC);
       wrapFactor = Math.ceil(Math.round(wrapFactor));
+      console.log('wrapFactor:', wrapFactor);
 
       // TODO: do I need to wraparound all the feature positions? If I do, should I use geo or webmercator?
       // positions = positions.map(a => [a[0] + (EARTH_CIRC * wrapFactor), a[1] + (EARTH_CIRC * wrapFactor)]);
@@ -1507,6 +1514,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       xMax = center[0] + (EARTH_CIRC / 2);
     }
 
+    console.log('xMin:', xMin);
+    console.log('xMax:', xMax);
+
     // don't use this: keep the pitches relative to the viewport, not the visible map
 
     // let WEB_MERCATOR_HALF_HEIGHT = 20037508.626927227; // meters from equator to the maximum latitude of the web mercator projection
@@ -1516,60 +1526,28 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // yMax = Math.max(WEB_MERCATOR_HALF_HEIGHT, extent.ymax);
     // yMin = Math.min(-WEB_MERCATOR_HALF_HEIGHT, extent.ymin);
 
+    // xRange: the range in mercator meters
     var xRange = xMax - xMin;
     var yRange = yMax - yMin;
 
     let root = 130.813 // c3
 
-    let notes = 1; // maximum number of notes, also number of time divisions
+    let notes = 10; // maximum number of notes, also number of time divisions
     // let root = 32.70 // c1
     // let root = 65.4 // c2
 
-    let pitches = 1; // maximum number of pitches
+    let pitches = 15; // maximum number of pitches
 
     let scale = getPentatonic(pitches);
     var score = [];
-
-    // rectbin tests
-    var negrectbin = d3.rectbin()
-    .dx(1)
-    .dy(1);
-
-    var negbins = negrectbin([
-      [-2.1, -2],
-      [-2, -1],
-      [-2, 0],
-      [-2, 1],
-      [-2, 2],
-      [-1, -2],
-      [-1, -1],
-      [-1, 0],
-      [-1, 1],
-      [-1, 2],
-      [0, -2],
-      [0, -1],
-      [0, 0],
-      [0, 1],
-      [0, 2],
-      [1, -2],
-      [1, -1],
-      [1, 0],
-      [1, 1],
-      [1, 2],
-      [2, -2],
-      [2, -1],
-      [2, 0],
-      [2, 1],
-      [2, 2]
-    ], [-2.1,2], [-2,2]);
 
     console.log('notes:', notes, 'dx:', xRange / notes)
     console.log('pitches:', pitches, 'dy:', yRange / pitches)
 
     // set up rectbin
     var rectbin = d3.rectbin()
-    .dx(xRange / (notes))
-    .dy(yRange / (pitches));
+    .dx(xRange / notes)
+    .dy(yRange / pitches);
 
     // the result of the rectbin layout
     let xExtent = [xMin, xMax];
@@ -1578,7 +1556,43 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // bin the positions
     var bins = rectbin(positions, xExtent, yExtent);
-    console.log(bins)
+    // console.log(xRange / notes)
+    // console.log(yRange / pitches)
+    console.log('bins:', bins.length)
+    // bins = bins.reverse();
+    let binContents = [];
+    for (x in bins) {
+      binContents.push(bins[x].length)
+    }
+    let binOutput = [];
+    let binString = '';
+    try {
+    if (bins.length % notes != 0) notes = 11;
+    // for (var x = 0; x < bins.length/notes; x++) {
+    for (var x = bins.length/notes - 1; x > 0; x--) {
+      binOutput = [];
+      // for (var y = notes - 1; y > 0; y--) {
+      for (var y = 0; y < notes; y++) {
+        console.log(x, y, x*notes+y)
+        binOutput.push(binContents[x*notes+y])
+      }
+      console.log(binOutput)
+      binOutput.forEach(x => binString += (x == 0 ? '.'.padStart(4) : x.toString().padStart(4)))
+      // binOutput.forEach(x => console.log(x.toString()))
+      // binString += binOutput.join(' ') + '\n';
+      binString += '\n';
+    }
+    console.log(binString);
+  }catch(e) {
+    console.log(e);
+  }
+    // console.log('binContents:', binContents);
+    // TODO: what's a better way to check this? make a better log output like this:
+    // 0 0 0 0
+    // 0 1 0 0
+    // 0 0 1 0
+    // maybe use a clustering mechanism as a visual debugger? maybe place numbers on the map in an array of blocks
+
     // filter empty bins
     // console.log(bins.filter(a => {
     //   if (a.length > 0) return a;
@@ -1591,14 +1605,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let volume = 2; // this one goes to Infinity
 
     var output = [];
-    var paths = [];
-
-    // console.log(bins.length, 'bins', bins);
-
-    for (var b = 1; b < bins.length; b++) {
-      paths.push( [[bins[b].x, bins[b].y], [bins[b-1].x, bins[b-1].y]] );
-    }
-    // console.log(paths.length, 'paths', paths)
 
     // let start = webMercatorUtils.xyToLngLat(bins[0].x, bins[0].y);
     // let end = webMercatorUtils.xyToLngLat(bins[bins.length-1].x, bins[bins.length-1].y);
@@ -1608,14 +1614,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // let start = webMercatorUtils.geographicToWebMercator(new Point(bins[0].x, bins[0].y));
     // let end = webMercatorUtils.geographicToWebMercator(new Point(bins[bins.length-1].x, bins[bins.length-1].y));
-    // debugger
 
     var binRange = [];
+    var extentRange = [];
 
-    let x0 = start[0];
-    let y0 = start[1];
-    let x1 = end[0];
-    let y1 = end[1];
+    let x0 = end[0];
+    let y0 = end[1];
+    let x1 = start[0];
+    let y1 = start[1];
 
     // let x0 = start.lon;
     // let y0 = start.lat;
@@ -1633,22 +1639,26 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // binRange.push( [[x1, y0], [x1, y1]] );
     console.log(`map center: ${center}`);
     console.log(`map x extents: [${xMin}, ${xMax}] y extents: [${yMin}, ${yMax}]`)
+    extentRange.push( [[xMin, yMin], [xMax, yMax]] );
     binRange.push( [[x0, y0], [x1, y1]] );
     console.log(`bin x extents:  [${x0}, ${x1}] y extents: [${y0}, ${y1}]`)
+
+    // TODO: why isn't the binrange the same as the map range?
 
     var lineSymbol = {
       type: "simple-line", // autocasts as SimpleLineSymbol()
       color: 'black',
       width: 1
     };
-    var line = {
-      type: "polyline",
-      paths,
-      // spatialReference: view.spatialReference
-    }
     var binRangeLine = {
       type: "polyline",
       paths: binRange,
+      spatialReference: SpatialReference.WebMercator
+    }
+
+    var extentLine = {
+      type: "polyline",
+      paths: extentRange,
       spatialReference: SpatialReference.WebMercator
     }
 
@@ -1680,6 +1690,17 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       symbol: {
         type: "simple-line", // autocasts as SimpleLineSymbol()
         color: 'red',
+        width: 1
+      },
+    })
+
+    state.view.graphics.add({
+      type: 'graphic',
+      geometry: extentLine,
+      // symbol: lineSymbol,
+      symbol: {
+        type: "simple-line", // autocasts as SimpleLineSymbol()
+        color: 'blue',
         width: 1
       },
     })
