@@ -1565,24 +1565,30 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       binContents.push(bins[x].length)
     }
     let binOutput = [];
+    let noteBins = [];
     let binString = '';
     try {
+      // for some reason the rectbin sometimes adds extra columns of bins,
+      // keep trying until you find which how many there are
     if (bins.length % notes != 0) notes = 11;
+    if (bins.length % notes != 0) notes = 12;
+    if (bins.length % notes != 0) notes = 13; // never saw 13 but just in case
     // for (var x = 0; x < bins.length/notes; x++) {
-    for (var x = bins.length/notes - 1; x > 0; x--) {
+    for (var x = bins.length/notes - 1; x > -1; x--) {
       binOutput = [];
       // for (var y = notes - 1; y > 0; y--) {
       for (var y = 0; y < notes; y++) {
         console.log(x, y, x*notes+y)
         binOutput.push(binContents[x*notes+y])
       }
-      console.log(binOutput)
       binOutput.forEach(x => binString += (x == 0 ? '.'.padStart(4) : x.toString().padStart(4)))
       // binOutput.forEach(x => console.log(x.toString()))
       // binString += binOutput.join(' ') + '\n';
       binString += '\n';
+      noteBins.push(binOutput);
     }
     console.log(binString);
+    console.log(noteBins);
   }catch(e) {
     console.log(e);
   }
@@ -1606,22 +1612,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     var output = [];
 
-    // let start = webMercatorUtils.xyToLngLat(bins[0].x, bins[0].y);
-    // let end = webMercatorUtils.xyToLngLat(bins[bins.length-1].x, bins[bins.length-1].y);
-
     let start = [bins[0].x, bins[0].y];
     let end = [bins[bins.length-1].x, bins[bins.length-1].y];
-
-    // let start = webMercatorUtils.geographicToWebMercator(new Point(bins[0].x, bins[0].y));
-    // let end = webMercatorUtils.geographicToWebMercator(new Point(bins[bins.length-1].x, bins[bins.length-1].y));
 
     var binRange = [];
     var extentRange = [];
 
-    let x0 = end[0];
-    let y0 = end[1];
-    let x1 = start[0];
-    let y1 = start[1];
+    let x0 = start[0];
+    let y0 = start[1];
+    let x1 = end[0];
+    let y1 = end[1];
 
     // let x0 = start.lon;
     // let y0 = start.lat;
@@ -1638,24 +1638,42 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // binRange.push( [[x0, y1], [x1, y1]] );
     // binRange.push( [[x1, y0], [x1, y1]] );
     console.log(`map center: ${center}`);
-    console.log(`map x extents: [${xMin}, ${xMax}] y extents: [${yMin}, ${yMax}]`)
+    console.log(`map extents: [${xMin}, ${yMin}], [${xMax}, ${yMax}]`)
     extentRange.push( [[xMin, yMin], [xMax, yMax]] );
     binRange.push( [[x0, y0], [x1, y1]] );
-    console.log(`bin x extents:  [${x0}, ${x1}] y extents: [${y0}, ${y1}]`)
+    console.log(`bin x extents:  [${x0}, ${y0}], [${x1}, ${y1}]`)
 
     // TODO: why isn't the binrange the same as the map range?
-
-    var lineSymbol = {
-      type: "simple-line", // autocasts as SimpleLineSymbol()
-      color: 'black',
-      width: 1
-    };
+    var binRangeStart = {
+      type: "point",
+      x: start[0],
+      y: start[1],
+      spatialReference: SpatialReference.WebMercator
+    }
+    var binRangeEnd = {
+      type: "point",
+      x: end[0],
+      y: end[1],
+      spatialReference: SpatialReference.WebMercator
+    }
     var binRangeLine = {
       type: "polyline",
       paths: binRange,
       spatialReference: SpatialReference.WebMercator
     }
-
+    
+    var extentStart = {
+      type: "point",
+      x: xMin,
+      y: yMin,
+      spatialReference: SpatialReference.WebMercator
+    }
+    var extentEnd = {
+      type: "point",
+      x: xMax,
+      y: yMax,
+      spatialReference: SpatialReference.WebMercator
+    }
     var extentLine = {
       type: "polyline",
       paths: extentRange,
@@ -1673,15 +1691,24 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // }
 
 
-    // view.graphics.add(new Graphic({
-    //   geometry: line,
-    //   symbol: lineSymbol,
-    //   // symbol: {
-    //   //   type: "simple-line", // autocasts as SimpleLineSymbol()
-    //   //   color: 'black',
-    //   //   width: 1
-    //   // },
-    // }))
+    state.view.graphics.add({
+      type: 'graphic',
+      geometry: binRangeStart,
+      symbol: {
+        type: "simple-marker",
+        color: 'red',
+        size: 10
+      }
+    })
+    state.view.graphics.add({
+      type: 'graphic',
+      geometry: binRangeEnd,
+      symbol: {
+        type: "simple-marker",
+        color: 'red',
+        size: 10
+      }
+    })
 
     state.view.graphics.add({
       type: 'graphic',
@@ -1693,6 +1720,26 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         width: 1
       },
     })
+
+    state.view.graphics.add({
+      type: 'graphic',
+      geometry: extentStart,
+      symbol: {
+        type: "simple-marker",
+        color: 'blue',
+        size: 10
+      }
+    })
+    state.view.graphics.add({
+      type: 'graphic',
+      geometry: extentEnd,
+      symbol: {
+        type: "simple-marker",
+        color: 'blue',
+        size: 10
+      }
+    })
+
 
     state.view.graphics.add({
       type: 'graphic',

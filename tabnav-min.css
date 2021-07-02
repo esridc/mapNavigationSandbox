@@ -333,6 +333,7 @@ body,
   border: 2px solid gold;
   padding: 10px;
   background: white;
+  opacity: 50%;
   font-size: 12px;
 }
 
