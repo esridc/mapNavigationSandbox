@@ -135,22 +135,15 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // draw whole map from scratch
   async function drawMap() {
     var {dataset, layer, view} = state;
-    const darkModeCheckbox = document.querySelector('#darkMode calcite-checkbox');
     const map = new Map({
       // choose a light or dark background theme as default
-      basemap: darkModeCheckbox?.checked ? "dark-gray-vector" : "gray-vector",
+      basemap: "gray-vector",
       layers: layer,
     });
     if (view) {
       // update existing view, then exit
       view.map = map;
       state = {...state, view}
-      // // explicitly wait for bgColor to be updated, then update the layerView
-      // await getBgColor().then(color => {
-      //   state.bgColor = color;
-      //   updateLayerViewEffect();
-      // });
-      // return view;
     }
     var view = new MapView({
       container: "viewDiv",
@@ -254,6 +247,48 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       title: "Popup Template Title",
       content: "Popup Template Content? {sensorName}"
     }
+
+    // // add clustering
+    // const clusterConfig = {
+    //   type: "cluster",
+    //   clusterRadius: "100px",
+    //   // {cluster_count} is an aggregate field containing
+    //   // the number of features comprised by the cluster
+    //   popupTemplate: {
+    //     title: "Cluster summary",
+    //     content: "This cluster represents {cluster_count} earthquakes.",
+    //     fieldInfos: [{
+    //       fieldName: "cluster_count",
+    //       format: {
+    //         places: 0,
+    //         digitSeparator: true
+    //       }
+    //     }]
+    //   },
+    //   clusterMinSize: "24px",
+    //   clusterMaxSize: "60px",
+    //   labelingInfo: [{
+    //     deconflictionStrategy: "none",
+    //     labelExpressionInfo: {
+    //       expression: "Text($feature.cluster_count, '#,###')"
+    //     },
+    //     symbol: {
+    //       type: "text",
+    //       color: "#004a5d",
+    //       font: {
+    //         weight: "bold",
+    //         family: "Noto Sans",
+    //         size: "12px"
+    //       }
+    //     },
+    //     labelPlacement: "center-center",
+    //   }]
+    // };
+
+    // layer.featureReduction = {
+    //   type: "cluster"
+    // };
+
     // update state
     state = {...state, layer, dataset};
 
@@ -967,7 +1002,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   async function updateFeatures() {
-        let {view, layer} = state;
+    let {view, layer} = state;
     if (!view) return false;
     // let layerView = await view.whenLayerView(layer);
     // query visible features
@@ -1385,8 +1420,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // EFFECTS
 
   // const panner = new Tone.Panner(1).toDestination();
+  // panner.pan.rampTo(-1, 0.5);
   var reverb = new Tone.Reverb(2.4).toDestination();
-  //  panner.pan.rampTo(-1, 0.5);
 
   // COMPONENTS
 
@@ -1529,14 +1564,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // xRange: the range in mercator meters
     var xRange = xMax - xMin;
     var yRange = yMax - yMin;
+    
+    let notes = 30; // maximum number of notes, also number of time divisions
 
-    let root = 130.813 // c3
-
-    let notes = 10; // maximum number of notes, also number of time divisions
-    // let root = 32.70 // c1
+    // set the lowest note in the scale
+    // let root = 130.813 // 130hz = c3
+    let root = 98 // g2
     // let root = 65.4 // c2
+    // let root = 32.70 // c1
 
-    let pitches = 15; // maximum number of pitches
+    let pitches = 25; // maximum number of pitches
 
     let scale = getPentatonic(pitches);
     var score = [];
@@ -1556,317 +1593,109 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // bin the positions
     var bins = rectbin(positions, xExtent, yExtent);
-    // console.log(xRange / notes)
-    // console.log(yRange / pitches)
-    console.log('bins:', bins.length)
-    // bins = bins.reverse();
-    let binContents = [];
-    for (x in bins) {
-      binContents.push(bins[x].length)
-    }
-    let binOutput = [];
-    let noteBins = [];
-    let binString = '';
-    try {
-      // for some reason the rectbin sometimes adds extra columns of bins,
-      // keep trying until you find which how many there are
-    if (bins.length % notes != 0) notes = 11;
-    if (bins.length % notes != 0) notes = 12;
-    if (bins.length % notes != 0) notes = 13; // never saw 13 but just in case
-    // for (var x = 0; x < bins.length/notes; x++) {
-    for (var x = bins.length/notes - 1; x > -1; x--) {
-      binOutput = [];
-      // for (var y = notes - 1; y > 0; y--) {
-      for (var y = 0; y < notes; y++) {
-        console.log(x, y, x*notes+y)
-        binOutput.push(binContents[x*notes+y])
-      }
-      binOutput.forEach(x => binString += (x == 0 ? '.'.padStart(4) : x.toString().padStart(4)))
-      // binOutput.forEach(x => console.log(x.toString()))
-      // binString += binOutput.join(' ') + '\n';
-      binString += '\n';
-      noteBins.push(binOutput);
-    }
-    console.log(binString);
-    console.log(noteBins);
-  }catch(e) {
-    console.log(e);
-  }
-    // console.log('binContents:', binContents);
-    // TODO: what's a better way to check this? make a better log output like this:
-    // 0 0 0 0
-    // 0 1 0 0
-    // 0 0 1 0
-    // maybe use a clustering mechanism as a visual debugger? maybe place numbers on the map in an array of blocks
 
-    // filter empty bins
-    // console.log(bins.filter(a => {
-    //   if (a.length > 0) return a;
-    //   else return false;
-    // }))
+
+
+    // ASCII GRID CONSOLE OUTPUT
+
+    // displayBins(); // toggle this comment to enable
+    function displayBins() {
+      let binContents = [];
+      bins.forEach(x => binContents.push(x.length))
+      console.log(binContents);
+      let binOutput = [];
+      let outputString = '\n';
+      try {
+        // for some reason the rectbin sometimes adds extra columns of bins, so count them –
+        // the .i and .j properties of each bin are its coordinate within the binning grid,
+        // centered at 0,0, so i will be a range like -4..5, which would be 10 columns, aka 10 notes
+        notes = bins[bins.length -1].i - bins[0].i + 1;
+        // TODO: the bin columns are sorted right-to-left?? what am I missing here
+        // TODO: examine pervasive western left-to-right bias in computing
+        for (var x = bins.length/notes - 1; x > -1; x--) {
+          binOutput = [];
+          // for (var y = notes - 1; y > 0; y--) { // this results in a backwards score
+          for (var y = 0; y < notes; y++) {
+            let value = binContents[x*notes+y];
+            binOutput.push(binContents[x*notes+y])
+          }
+          // padStart for ascii grid console output
+          binOutput.forEach(x => {
+            outputString += (x == 0 ? '.'.padStart(4) : x.toString().padStart(4));
+          });
+          outputString += '\n';
+        }
+        console.log(outputString);
+      } catch(e) {
+        console.log(e);
+      }
+    }
+
+
+    // CONVERT BINS TO NOTE.JS SCORE
+    // convert bins to times and pitches, with bin count mapped to velocity (aka loudness)
 
     let duration = 1; // number of seconds per sonar ping
+    // get the length of the longest bin: bin with the most points – should map roughly to the largest cluster
     let maxVelocity = bins.reduce((a, b )=> Math.max(a, b.length), 0);
     // console.log('bins:', bins.length, 'maxvelocity:', maxVelocity)
     let volume = 2; // this one goes to Infinity
+    console.log('duration/notes:', duration, notes, duration/notes);
 
-    var output = [];
+    var output = []; // debugging
 
-    let start = [bins[0].x, bins[0].y];
-    let end = [bins[bins.length-1].x, bins[bins.length-1].y];
+    // get bins range, to scale time and notes
+    let binsIMin = bins[0].i;
+    let binsJMin = bins[0].j;
+    let binsIMax = bins[bins.length-1].i;
+    let binsJMax = bins[bins.length-1].j;
+    let binsIRange = binsIMax - binsIMin;
+    let binsJRange = binsJMax - binsJMin;
+    console.log('binsJMin:', binsJMin);
+    console.log('binsJRange:', binsJRange);
 
-    var binRange = [];
-    var extentRange = [];
-
-    let x0 = start[0];
-    let y0 = start[1];
-    let x1 = end[0];
-    let y1 = end[1];
-
-    // let x0 = start.lon;
-    // let y0 = start.lat;
-    // let x1 = end.lon;
-    // let y1 = end.lat;
-
-    // let x0 = start.x;
-    // let y0 = start.y;
-    // let x1 = end.x;
-    // let y1 = end.y;
-
-    // binRange.push( [[x0, y0], [x1, y0]] );
-    // binRange.push( [[x0, y0], [x0, y1]] );
-    // binRange.push( [[x0, y1], [x1, y1]] );
-    // binRange.push( [[x1, y0], [x1, y1]] );
-    console.log(`map center: ${center}`);
-    console.log(`map extents: [${xMin}, ${yMin}], [${xMax}, ${yMax}]`)
-    extentRange.push( [[xMin, yMin], [xMax, yMax]] );
-    binRange.push( [[x0, y0], [x1, y1]] );
-    console.log(`bin x extents:  [${x0}, ${y0}], [${x1}, ${y1}]`)
-
-    // TODO: why isn't the binrange the same as the map range?
-    var binRangeStart = {
-      type: "point",
-      x: start[0],
-      y: start[1],
-      spatialReference: SpatialReference.WebMercator
-    }
-    var binRangeEnd = {
-      type: "point",
-      x: end[0],
-      y: end[1],
-      spatialReference: SpatialReference.WebMercator
-    }
-    var binRangeLine = {
-      type: "polyline",
-      paths: binRange,
-      spatialReference: SpatialReference.WebMercator
-    }
-    
-    var extentStart = {
-      type: "point",
-      x: xMin,
-      y: yMin,
-      spatialReference: SpatialReference.WebMercator
-    }
-    var extentEnd = {
-      type: "point",
-      x: xMax,
-      y: yMax,
-      spatialReference: SpatialReference.WebMercator
-    }
-    var extentLine = {
-      type: "polyline",
-      paths: extentRange,
-      spatialReference: SpatialReference.WebMercator
-    }
-
-    // var binlines = [];
-    // for (var x = 1; x < bins.length; x++) {
-    //   binlines.push([[bins[0].x, bins[0].y];
-    //   let end = [bins[bins.length-1].x, bins[bins.length-1].y];
-
-    // }
-    // for (var x = 0; x < bins.length; x++) {
-
-    // }
-
-
-    state.view.graphics.add({
-      type: 'graphic',
-      geometry: binRangeStart,
-      symbol: {
-        type: "simple-marker",
-        color: 'red',
-        size: 10
-      }
-    })
-    state.view.graphics.add({
-      type: 'graphic',
-      geometry: binRangeEnd,
-      symbol: {
-        type: "simple-marker",
-        color: 'red',
-        size: 10
-      }
-    })
-
-    state.view.graphics.add({
-      type: 'graphic',
-      geometry: binRangeLine,
-      // symbol: lineSymbol,
-      symbol: {
-        type: "simple-line", // autocasts as SimpleLineSymbol()
-        color: 'red',
-        width: 1
-      },
-    })
-
-    state.view.graphics.add({
-      type: 'graphic',
-      geometry: extentStart,
-      symbol: {
-        type: "simple-marker",
-        color: 'blue',
-        size: 10
-      }
-    })
-    state.view.graphics.add({
-      type: 'graphic',
-      geometry: extentEnd,
-      symbol: {
-        type: "simple-marker",
-        color: 'blue',
-        size: 10
-      }
-    })
-
-
-    state.view.graphics.add({
-      type: 'graphic',
-      geometry: extentLine,
-      // symbol: lineSymbol,
-      symbol: {
-        type: "simple-line", // autocasts as SimpleLineSymbol()
-        color: 'blue',
-        width: 1
-      },
-    })
-
-    // state.view.graphics.add({
-    //   type: 'graphic',
-    //   geometry: {
-    //     type: "point",
-    //     x: xMin,
-    //     // y: state.view.extent.ymin,
-    //     y: 0,
-    //     // spatialReference: new SpatialReference({ wkid: 4326 }),
-    //     spatialReference: view.spatialReference,
-    //   },
-    //   symbol: {
-    //     type: "simple-marker", // autocasts as SimpleLineSymbol()
-    //     color: 'red',
-    //     width: 5
-    //   },
-    // })
-    // state.view.graphics.add({
-    //   type: 'graphic',
-    //   geometry: {
-    //     type: "point",
-    //     x: xMax,
-    //     // y: state.view.extent.ymax,
-    //     y: 0,
-    //     // spatialReference: new SpatialReference({ wkid: 4326 }),
-    //     spatialReference: view.spatialReference,
-    //   },
-    //   symbol: {
-    //     type: "simple-marker", // autocasts as SimpleLineSymbol()
-    //     color: 'green',
-    //     width: 5
-    //   },
-    // })
-
-    // var extents = [];
-    // x0 = extent.xmin;
-    // y0 = extent.ymin;
-    // x1 = extent.xmax;
-    // y1 = extent.ymax;
-    // extents.push( [[x0, y0], [x1, y0]] );
-    // extents.push( [[x0, y0], [x0, y1]] );
-    // extents.push( [[x0, y1], [x1, y1]] );
-    // extents.push( [[x1, y0], [x1, y1]] );
-    // var extentsline = {
-    //   type: "polyline",
-    //   paths: extents,
-    //   spatialReference: view.spatialReference
-    // }
-    // state.view.graphics.add({
-    //   type: 'graphic',
-    //   geometry: extentsline,
-    //   // symbol: lineSymbol,
-    //   symbol: {
-    //     type: "simple-line", // autocasts as SimpleLineSymbol()
-    //     color: 'orange',
-    //     width: 1
-    //   },
-    // })
-
-
-    // const polyline = new Polyline({
-    //   paths: [
-    //     [150, 52.68],
-    //     [210, 49.5]
-    //   ],
-    //   spatialReference: view.spatialReference
-    // });
-
-
-    // convert bins to times and pitches, with bin count mapped to velocity
     for (var x = 0; x < bins.length; x++) {
       var note = 0;
+      var time = 0;
       if (bins[x].length) { // if it has any entries
-        let time = bins[x].i * duration/notes;
-        note = root * scale[ Math.max(0, Math.min(pitches, Math.floor(bins[x].j))) ];
-        // if (!note) debugger
+        // rescale bin range
+        let IValue = notes * (bins[x].i - binsIMin)/binsIRange;
+        time = IValue * duration/notes;
+        // rescale J value to fit into scale range
+        let JValue = bins[x].j - binsJMin;
+        // if (JValue < 1) debugger
+        // pick index into the scale array
+        note = root * scale[ Math.max(0, // minimum index value is 0
+                             Math.min(scale.length-1, Math.floor(JValue)) // maximum value is the top of the scale
+                             ) ];
+        // if (isNaN(note)) debugger
+        // scale loudness to size of bin, on a curve
         let velocity = Math.max(.1, (bins[x].length / maxVelocity)) * volume;
-        // console.log(velocity)
+        // apply equal loudness factor
+        velocity = equalLoudnessContour(note) * velocity;
         score.push({ time, note, velocity });
+        // console.log(x, time, note)
       }
-      output.push({bin: x, length: bins[x].length, i: bins[x].i, j: bins[x].j, x: bins[x].x, y: bins[x].y, note: note})
+      // for debugging
+      output.push({bin: x, length: bins[x].length, i: bins[x].i, j: bins[x].j, x: bins[x].x, y: bins[x].y, note: note, time: time})
     }
 
     // console.table(output)
     // console.log(score);
-    // debugger
 
-    //
-    // GET TIMES
-    //
-
-    // let oldLongMin = viewLongMin;
-    // let oldLongMax = viewLongMax;
-    // let newLongMin = 0;
-    // let newLongMax = duration;
-
-    // for (var x = 0; x < notes; x++) {
-    //   // convert to geographic coordinates to handle longitude wraparound
-    //   let position = webMercatorUtils.geographicToWebMercator(new Point(positions[x]));
-    //   // shift range of latitudes to range of scale indices
-    //   let oldLatVal = position.y;
-    //   // let newLatVal = (((oldLatVal - oldLatMin) * (newLatMax - newLatMin)) / (oldLatMax - oldLatMin)) + newLatMin;
-    //   let newLatVal = rescale(oldLatVal, oldLatMin, oldLatMax, newLatMin, newLatMax);
-    //   // choose a pitch
-    //   let pitch = root * scale[Math.floor(newLatVal)] // use a scale
-    //   // let pitch = root * (octaves * newLatVal + 1) // use arbitrary pitches
-
-    //   // shift range of longitudes to range of time values
-    //   let oldLongVal = position.x;
-    //   // let newLongVal = (((oldLongVal - oldLongMin) * (newLongMax - newLongMin)) / (oldLongMax - oldLongMin)) + newLongMin;
-    //   let newLongVal = rescale(oldLongVal, oldLongMin, oldLongMax, newLongMin, newLongMax);
-
-    //   score.push({time: newLongVal, note: pitch, velocity: .5});
-    // }
     return score;
+  }
 
+  // verrry quick+dirty transfer function to equalize apparent pitch loudness
+  // https://en.wikipedia.org/wiki/Equal-loudness_contour
+  // input is hz, output is velocity factor
+  // 100 => 1
+  // 500 => .651
+  // 2000 => .349
+  function equalLoudnessContour(n) {
+    let out = -Math.log10(Math.pow(n, .5)) + 2;
+    // console.log('n:', n, 'out:', out);
+    return out;
   }
 
   // get the pitch of a single feature
@@ -1883,7 +1712,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var newLatMax = pitches - 1; // if using a scale
 
     let newLatVal = rescale(position.y, oldLatMin, oldLatMax, newLatMin, newLatMax);
-    let root = 65.4 // c2
+    let root = 65.4 // the lowest note in the scale in hz, 65.4 = c2
     let scale = getPentatonic(pitches);
     let val = root * scale[Math.floor(newLatVal)] // use a scale
     return val;
