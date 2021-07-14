@@ -926,9 +926,15 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       setMode("feature");
       console.log('feature mode activated');
     });
-    document.querySelector('#verbosityDropdown').addEventListener('click', (e) => {
-      // setMode("featureSelection");
-      console.log('verbosity dropdown');
+    document.querySelector('#verboseCheckbox').addEventListener('click', (e) => {
+      // toggle verbose
+      if (e.currentTarget.checked) {
+        keyboardModeState.verbose = true;
+        updateFeatures();
+      }
+      else {
+        keyboardModeState.verbose = false;
+      }
     });
     document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
       console.log('sonar checkbox');
@@ -1005,6 +1011,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       ping()
     }
 
+    if (keyboardModeState.verbose) {
+      announceRegion()
+    }
+
   }
 
   var keyboardModeState = {
@@ -1014,7 +1024,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     mode: null,
     place: null,
     sonar: null,
+    verbose: null,
   };
+
+  // enable request aborts
+  let controller = new AbortController();
+  let signal = controller.signal;
 
   // mode event handler
   // dedicated to Larry Tesler
@@ -1140,8 +1155,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var atts = feature.attributes;
     var keys = Object.keys(atts);
     var vals = Object.values(atts);
-    let controller = new AbortController();
-    let signal = controller.signal;
+    controller = new AbortController();
+    signal = controller.signal;
     count++;
     requests.push({
       controller,
@@ -1699,6 +1714,32 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   // scale a value from the range oldMin-oldMax to the range newMin-newMax
   function rescale(val, oldMin, oldMax, newMin, newMax) {
     return (((val - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
+  }
+
+  function announceRegion() {
+    console.log('announceRegion');
+    let location = { lon: state.view.center.longitude, lat: state.view.center.latitude };
+    let url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
+    controller = new AbortController();
+    signal = controller.signal;
+    esriRequest(url, {
+      signal,
+      responseType: "json"
+    }).then(function(response){
+      // console.log('queue:', requests.map(r => r.count))
+      // The requested data
+      var geoJson = response.data;
+      // track this in state so the popup knows whether to cancel any outstanding requests
+      console.log(geoJson.address.LongLabel);
+      document.getElementById('placeLabel').innerHTML = geoJson.address.LongLabel;
+    }).catch((err) => {
+      if (err.name === 'AbortError') {
+        console.log('Request aborted');
+      } else {
+        // console.error('Error encountered', err);
+        // document.getElementById('placeLabel').innerHTML = "";
+      }
+    });
   }
 
   initKeyboardMode();
