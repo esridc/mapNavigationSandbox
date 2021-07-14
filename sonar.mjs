@@ -30,7 +30,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   webMercatorUtils,
   watchUtils,
   Point,
-
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
@@ -1755,14 +1754,14 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }).then(function(response){
       console.log('response?')
       var geoJson = response.data;
-      console.log(geoJson.address)
+      console.log('address:', geoJson.address)
       // track this in state so the popup knows whether to cancel any outstanding requests
       let z = state.view.zoom;
-      let placeName;
+      let placeName = '';
       if (z < 6) placeName = geoJson.address.Region;
       else if (z < 14) placeName = geoJson.address.Match_addr;
       else if (z < 20) placeName = geoJson.address.LongLabel;
-      placeName == placeName || geoJson.address.ShortLabel;
+      if (placeName == '') placeName = geoJson.address.ShortLabel;
       console.log('region:', placeName)
       if (placeName != keyboardModeState.lastPlace) {
         statusAlert(placeName);
