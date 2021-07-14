@@ -61,6 +61,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   // track state
   var state = {};
+  var keyboardModeState = {};
   function initState() {
     state = {
       dataset: null,
@@ -73,6 +74,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       fieldName: null,
       lastPosition: null,
     }
+    keyboardModeState = {
+      features: null,
+      feature: null,
+      featureIndex: 0,
+      mode: null,
+      place: null,
+      sonar: null,
+      verbose: null,
+      lastPlace: null,
+    };
   }
 
   const DATASET_FIELD_UNIQUE_VALUES = {}; // cache by field name
@@ -1017,20 +1028,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   }
 
-  var keyboardModeState = {
-    features: null,
-    feature: null,
-    featureIndex: 0,
-    mode: null,
-    place: null,
-    sonar: null,
-    verbose: null,
-  };
-
-  // enable request aborts
-  let controller = new AbortController();
-  let signal = controller.signal;
-
   // mode event handler
   // dedicated to Larry Tesler
   function keyboardModeHandler(e) {
@@ -1155,8 +1152,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var atts = feature.attributes;
     var keys = Object.keys(atts);
     var vals = Object.values(atts);
-    controller = new AbortController();
-    signal = controller.signal;
+    let controller = new AbortController();
+    let signal = controller.signal;
     count++;
     requests.push({
       controller,
@@ -1281,6 +1278,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         }
       }
     } else {
+      console.log(e)
       // global arrow key navigation – replace default
 
       let weight = .85; // weighted average – move this percent from the center to the edge
@@ -1334,11 +1332,23 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         state.view.goTo({
           target: keyboardModeState.feature, // defaults to null
           zoom: state.view.zoom + 2
+        }).then( async () => {
+          if (keyboardModeState.verbose) {
+            await state.view.whenLayerView().then(
+              statusAlert('z'+state.view.zoom)
+            )
+          }
         });
 
       } else if (e.key == 'x') {
         state.view.goTo({
           zoom: state.view.zoom - 2
+        }).then( async () => {
+          if (keyboardModeState.verbose) {
+            await state.view.whenLayerView().then(
+              statusAlert('z'+state.view.zoom)
+            )
+          }
         });
 
       } else if (e.key == 's') {
@@ -1349,7 +1359,18 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
           ping();
         }
 
+      } else if (e.key in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+        // do a sonar ping
+        if (keyboardModeState.mode) { // if keyboardModeState has been set
+          state.view.zoom = e.key;
+        }
+
+      } else if (e.key == "Backspace") {
+        statusAlert(" ");
+        e.preventDefault();
       }
+
+
       // keyboardModeHandler(e);
     }
     // fix browser reloading when tabbing to the page when map has focus
@@ -1717,27 +1738,38 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function announceRegion() {
-    console.log('announceRegion');
+    let controller = new AbortController();
+    let signal = controller.signal;
+
     let location = { lon: state.view.center.longitude, lat: state.view.center.latitude };
-    let url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
-    controller = new AbortController();
-    signal = controller.signal;
+    let url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&langCode=en&location=${location.lon},${location.lat}`;
+    console.log(url)
     esriRequest(url, {
       signal,
-      responseType: "json"
+      responseType: "json",
     }).then(function(response){
-      // console.log('queue:', requests.map(r => r.count))
-      // The requested data
+      console.log('response?')
       var geoJson = response.data;
+      console.log(geoJson.address)
       // track this in state so the popup knows whether to cancel any outstanding requests
-      console.log(geoJson.address.LongLabel);
-      document.getElementById('placeLabel').innerHTML = geoJson.address.LongLabel;
+      let z = state.view.zoom;
+      let placeName;
+      if (z < 6) placeName = geoJson.address.Region;
+      else if (z < 14) placeName = geoJson.address.Match_addr;
+      else if (z < 20) placeName = geoJson.address.LongLabel;
+      placeName == placeName || geoJson.address.ShortLabel;
+      console.log('region:', placeName)
+      if (placeName != keyboardModeState.lastPlace) {
+        statusAlert(placeName);
+        keyboardModeState.lastPlace = placeName;
+      }
+
+
     }).catch((err) => {
       if (err.name === 'AbortError') {
         console.log('Request aborted');
       } else {
-        // console.error('Error encountered', err);
-        // document.getElementById('placeLabel').innerHTML = "";
+        console.log('Unknown error:', err)
       }
     });
   }
