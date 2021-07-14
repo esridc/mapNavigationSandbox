@@ -25,7 +25,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   LabelClass,
   CIMSymbol,
   cimSymbolUtils,
-  
+
   esriRequest,
   webMercatorUtils,
   watchUtils,
@@ -942,6 +942,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       if (e.currentTarget.checked) {
         keyboardModeState.verbose = true;
         updateFeatures();
+        announceRegion();
       }
       else {
         keyboardModeState.verbose = false;
@@ -1136,9 +1137,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }
     keyboardModeState.place = null;
 
-    var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
-    var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
-
     let template = document.getElementById('popup-content-template');
     let div = template.cloneNode(true);
     template.parentElement.appendChild(div);
@@ -1160,6 +1158,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       count
     });
 
+    let url = getLocationRequestURL(feature);
     esriRequest(url, {
       signal,
       responseType: "json"
@@ -1196,6 +1195,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }
     let meta = `Feature #${keyboardModeState.featureIndex + 1} of ${keyboardModeState.features.length}`;
     return {div, meta};
+  }
+
+  function getLocationRequestURL(feature) {
+    var location = { lon: feature.attributes.locationLongitude, lat: feature.attributes.locationLatitude };
+    var url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=pjson&featureTypes=&location=${location.lon}, ${location.lat}`;
+    return url;
   }
 
   async function selectFeature(index) {
