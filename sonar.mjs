@@ -17,31 +17,20 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   generateHistogram,
   HistogramRangeSlider,
 
-  Histogram,
   uniqueValues,
   Legend,
   colorRamps,
-  Color,
 
   viewColorUtils,
   LabelClass,
   CIMSymbol,
   cimSymbolUtils,
-  Popup,
-
-  PopupTemplate,
+  
   esriRequest,
   webMercatorUtils,
   watchUtils,
   Point,
 
-  normalizeUtils,
-  Polyline,
-  Graphic,
-  GeometryService,
-  DistanceParameters,
-
-  SpatialReference,
 ] = await loadModules([
   "esri/Map",
   "esri/views/MapView",
@@ -49,31 +38,20 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/smartMapping/statistics/histogram",
   "esri/widgets/HistogramRangeSlider",
 
-  "esri/widgets/Histogram",
   "esri/smartMapping/statistics/uniqueValues",
   "esri/widgets/Legend",
   "esri/smartMapping/symbology/support/colorRamps",
-  "esri/smartMapping/symbology/color",
 
   "esri/views/support/colorUtils",
   "esri/layers/support/LabelClass",
   "esri/symbols/CIMSymbol",
   "esri/symbols/support/cimSymbolUtils",
-  "esri/widgets/Popup",
 
-  "esri/PopupTemplate",
   "esri/request",
   "esri/geometry/support/webMercatorUtils",
   "esri/core/watchUtils",
   "esri/geometry/Point",
 
-  "esri/geometry/support/normalizeUtils",
-  "esri/geometry/Polyline",
-  "esri/Graphic",
-  "esri/tasks/GeometryService",
-  "esri/tasks/support/DistanceParameters",
-
-  "esri/geometry/SpatialReference",
 ]);
 
   // data urls
