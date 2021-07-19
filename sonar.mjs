@@ -1209,6 +1209,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       console.error('no features')
     }
     feature = features[index];
+    if (!feature) {
+      // selected feature may have moved offscreen, so reset selection index to 0
+      console.log('oops, no feature at that featureindex');
+      index = 0;
+      feature = features[index];
+      if (!feature) { // still nothing? that's a porblem
+        console.error('feature not found')
+        return false;
+      }
+    }
     keyboardModeState = {...keyboardModeState, feature, featureIndex: index};
     view.whenLayerView(layer).then(async layerView => {
       // TODO: figure out why this async function doesn't see the updated state
