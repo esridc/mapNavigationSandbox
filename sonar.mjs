@@ -1008,7 +1008,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     query.spatialRelationship = "contains";
 
     var features = (await state.layer.queryFeatures(query)).features;
-    // console.log('features:', features.length)
+    console.log('features:', features.length)
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
 
@@ -1206,7 +1206,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var {view, layer} = state;
     var {feature, features} = keyboardModeState;
     if (!features) {
-      console.error('no features')
+      // 
+      debugger
+      return false;
     }
     feature = features[index];
     if (!feature) {
@@ -1261,7 +1263,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         if (Tone.Transport.state == "started") {
           Tone.Transport.stop();
         }
-        // Tone.Transport.start();
+        Tone.Transport.start();
 
       }
     });
@@ -1291,12 +1293,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         }
       }
     } else {
-      console.log(e)
       // global arrow key navigation – replace default
 
       let weight = .85; // weighted average – move this percent from the center to the edge
 
       if (e.key == 'ArrowRight') {
+        // debugger
         state.view.goTo(new Point({
           x: (1 - weight) * state.view.center.x + weight * state.view.extent.xmax,
           y: state.view.center.y,
@@ -1418,8 +1420,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function keyStatus(msg) { document.getElementById("keyStatus").innerHTML = msg; }
   function modeStatus(msg) {
     document.getElementById("modeStatus").innerHTML = msg;
+    statusAlert(msg + " mode.")
   }
-  function statusAlert(msg) { document.getElementById("keyboardModeAlert").innerHTML = msg; }
+  function statusAlert(msg) { document.getElementById("alertDiv").innerHTML = msg; }
 
 
   // TONE.JS SETUP
@@ -1483,27 +1486,28 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function getNotes(part) {
     // clear any existing notes
     part.clear();
-    // let features = arrangeFeatures();
+    // get score
     var notes = arrangeFeatures();
-
+    // add notes to part
     for (let x = 0; x < notes.length; x++) {
       part.add(notes[x]);
     }
-
-    // return notes;
   }
 
   function sonarSetup() {
-    console.log('sonarSetup');
+    // set state
     keyboardModeState.sonar = true;
+    // activate Tone.js
     Tone.start();
+    // perform an initial sonar ping
     ping();
   }
 
   function ping() {
+    // get notes
     getNotes(part);
 
-    // set decay with a sigmoid function
+    // set decay with a sigmoid function based on zoom level
     let z = state.view.zoom;
     let maxDecay = 3; // seconds
     let a = .8; // slowness of dropoff
@@ -1517,10 +1521,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     Tone.Transport.start();
   }
 
-  function r(i) {
-    // debugger
-    return parseFloat( (i / 1000).toFixed(4) );
-  }
   function arrangeFeatures() {
     console.log('\n\n---\n\n')
 
@@ -1533,20 +1533,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // GET PITCHES
     //
 
+    // extract location from all features
     var positions = features.map(a => [a.geometry.x, a.geometry.y]);
-    // var positions = features.map(a => [r(a.geometry.x), r(a.geometry.y)]);
-    // console.log(positions.length, ':', positions)
-    // positions.sort((a, b) => (a[0] > b[0] ? 1 : -1)) // sort
-    // var min = positions.reduce((a, b) => Math.min(a, b[1]), Infinity);
-    // var max = positions.reduce((a, b) => Math.max(a, b[1]), Number.NEGATIVE_INFINITY);
-    // keep long in web mercator meters to handle wraparound
-    // var viewLatMin = extent.ymin;
-    // var viewLatMax = extent.ymax;
-
-    // var positionsxMin = positions.reduce((a, b )=> Math.min(a, b[0]), Infinity);
-    // var positionsyMin = positions.reduce((a, b )=> Math.min(a, b[1]), Infinity);
-    // var positionsxMax = positions.reduce((a, b )=> Math.max(a, b[0]), 0);
-    // var positionsyMax = positions.reduce((a, b )=> Math.max(a, b[1]), 0);
 
     let extent = view.extent;
     // find the view extent
@@ -1627,30 +1615,30 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // ASCII GRID CONSOLE OUTPUT
 
-    // displayBins(); // toggle this comment to enable
-    function displayBins() {
+    displayBins(bins); // toggle this comment to enable
+    function displayBins(bins) {
       let binContents = [];
       bins.forEach(x => binContents.push(x.length))
       console.log(binContents);
       let binOutput = [];
       let outputString = '\n';
       try {
-        // for some reason the rectbin sometimes adds extra columns of bins, so count them –
+        // for some reason rectbin sometimes adds extra columns of bins, so count them –
         // the .i and .j properties of each bin are its coordinate within the binning grid,
         // centered at 0,0, so i will be a range like -4..5, which would be 10 columns, aka 10 notes
         notes = bins[bins.length -1].i - bins[0].i + 1;
+        // for (var x = 0; x < bins.length/notes - 1; x++) { // this is flipped horizontally
         // TODO: the bin columns are sorted right-to-left?? what am I missing here
         // TODO: examine pervasive western left-to-right bias in computing
-        for (var x = bins.length/notes - 1; x > -1; x--) {
+        for (var x = bins.length/notes - 1; x > -1; x--) { // start at the 'end' of each row
           binOutput = [];
-          // for (var y = notes - 1; y > 0; y--) { // this results in a backwards score
           for (var y = 0; y < notes; y++) {
             let value = binContents[x*notes+y];
             binOutput.push(binContents[x*notes+y])
           }
           // padStart for ascii grid console output
           binOutput.forEach(x => {
-            outputString += (x == 0 ? '.'.padStart(4) : x.toString().padStart(4));
+            outputString += (x == 0 ? '·'.padStart(2) : x.toString(16).padStart(2)); // convert to hex for more compact output
           });
           outputString += '\n';
         }
