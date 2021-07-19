@@ -1343,7 +1343,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         // if (state.view.zoom < 22) { // effective view.constraints.maxZoom
         // }
         state.view.goTo({
-          target: keyboardModeState.feature, // defaults to null
+          target: keyboardModeState.mode == 'feature' ? keyboardModeState.feature : null, // defaults to null
           zoom: state.view.zoom + 2
         }).then( async () => {
           if (keyboardModeState.verbose) {
@@ -1386,6 +1386,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
       // keyboardModeHandler(e);
     }
+    // deselect feature when it leaves the viewport
+
     // fix browser reloading when tabbing to the page when map has focus
     if (e.key == "r" && e.metaKey && e.shiftKey) {
       location.reload(true);
