@@ -1105,7 +1105,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function featureHandler(e) {
-    if (e.key == "Enter") { // go into selected feature
+    if (e.key == "Escape") { // back to menu
+      setMode("featureSelection");
+      document.getElementById('keyboardModeMenu').focus();
+      e.preventDefault();
     }
   }
 
