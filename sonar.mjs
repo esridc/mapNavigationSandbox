@@ -1247,7 +1247,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       if (keyboardModeState.sonar) {
         let pitch = getPitch(feature);
         part.clear();
-        part.add({time: 0, note: pitch, velocity: .5});
+        part.add({time: 0, note: pitch, velocity: equalLoudnessContour(pitch) * .8});
 
         // set decay with a sigmoid function
         // TODO: DRY this out
