@@ -1094,11 +1094,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     if (e.key == "Enter") { // go into selected feature
       if (feature) {
         setMode("feature")
-        document.activeElement.blur();
-        if (!document.getElementById("popup-content")) {
-          // make a popup
-        }
-        document.getElementById("popup-content").focus();
+        document.getElementById("placeLabel").focus();
         statusAlert(`Feature #${featureIndex + 1} selected.`)
         e.preventDefault();
       } else {

@@ -141,7 +141,7 @@
 
   <!-- popup content template -->
   <div style="position: absolute; visibility: hidden" id="popup-content-template">
-    <h3 id="placeLabel"></h3>
+    <h3 id="placeLabel" tabindex="0"></h3> <!-- needs a tabindex so it can be .focus()ed -->
     <table id="popupTable" aria-label='Feature Attributes'>
       <thead>
         <tr>
