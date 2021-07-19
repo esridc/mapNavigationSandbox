@@ -103,16 +103,16 @@
 
   <div id="keyboardModeMenu" tabindex="0" class="esri-widget, hidden">
 
-    <button tabindex="0" id="featureSelectionModeButton" aria-labelledby="featureSelectionModeLabel"></button>
-      <label id="featureSelectionModeLabel">Feature selection mode</label>
-    <button tabindex="0" id="featureModeButton" aria-labelledby="featureModeLabel"></button>
-      <label id="featureModeLabel">Feature mode</label>
-    <input type="checkbox" tabindex="0" id="verboseCheckbox" aria-labelledby="verboseLabel"></select>
-      <label id="verboseLabel">Verbose</label>
-    <input type="checkbox" tabindex="0" id="sonarModeCheckbox" aria-labelledby="sonarModeLabel">
-      <label id="sonarModeLabel">Sonar</label>
-    <button tabindex="0" id="helpButton" aria-labelledby="helpButtonLabel"></button>
-      <label id="helpButtonLabel">Help</label>
+    <input type="checkbox" tabindex="0" id="featureSelectionModeButton" aria-labelledby="featureSelectionModeLabel"></input>
+    <label id="featureSelectionModeLabel">Feature selection</label>
+    <input type="checkbox" tabindex="0" id="featureModeButton" aria-labelledby="featureModeLabel"></input>
+    <label id="featureModeLabel">Inspect Feature</label>
+    <input type="checkbox" tabindex="0" id="verboseCheckbox" aria-labelledby="verboseLabel"></input>
+    <label id="verboseLabel">Verbose</label>
+    <input type="checkbox" tabindex="0" id="sonarModeCheckbox" aria-labelledby="sonarModeLabel"></input>
+    <label id="sonarModeLabel">Sonar</label>
+    <input type="checkbox" tabindex="0" id="helpButton" aria-labelledby="helpButtonLabel"></input>
+    <label id="helpButtonLabel">Help</label>
 
   </div>
 
@@ -131,8 +131,33 @@
       <span id="modeStatus">modeStatus</span>
     </div>
   </div>
-  <div id="alertDiv" role="alert">
-    Top level.
+  <div id="alertDivWrapper">
+    Speech announcement
+    <div id="alertDiv" role="alert">
+      Top level.
+    </div>
+  </div>
+  <div id="helpDivWrapper">
+    Esri Sonar Map
+    <div id="helpDiv" role="alert">
+      <p>This is a map of the world which uses non-visual navigation. It shows 2000 global features from a water quality database.</p>
+
+      <p>The arrow keys will move the map. The "z" and "x" keys will zoom in and out. Zoom 0 shows the whole world, zoom 6 is roughly the size of a country, zoom 12 is city level, and zoom 16 shows individual streets. The "c" key will center and zoom in on a selected feature.</p>
+
+      <p>The number keys also set zoom levels 0 through 9.</p>
+
+      <p>There is a menu with five checkboxes. Pressing enter on each will toggle the selected mode.</p>
+
+      <p>1) Feature selection. Press Tab and Shift-tab to move forward and back through onscreen features. Press escape to exit selection mode and return to the menu. Press Enter to examine a selected feature's data.</p>
+
+      <p>2) Inspect feature. Press Tab and Shift-tab to move forward and back through a selected feature's attributes. Press escape to leave the feature and return to selection mode.</p>
+
+      <p>3) Verbose. This mode will announce zoom levels and a geolocation result for the part of the map in the center of the screen.</p>
+
+      <p>4) Sonar. This mode converts the onscreen features to a musical score from left to right, with relative vertical screen position converted to pitch. A sonar ping will play when the map is moved. The "s" key will also send a ping. When this mode is activated, individual features will be played in Feature selection mode.</p>
+
+      <p>5) Help. This button shows this help text. Press escape to close it.</p>
+    </div>
   </div>
 
   <!-- popup content template -->

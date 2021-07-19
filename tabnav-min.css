@@ -351,3 +351,27 @@ body,
 #keyboardModeMenu > button {
   height: 15px;
 }
+
+#alertDivWrapper {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: bold;
+  position: absolute;
+  right: 0;
+}
+#alertDiv {
+  text-transform: none;
+  font-variant: normal;
+  font-size: medium;
+  font-weight: normal;
+  border: 2px solid gold;
+}
+
+#helpDivWrapper {
+  position: absolute;
+  display: none;
+  background-color: white;
+  margin: 50px;
+  border: 2px solid black;
+  padding: 20px;
+}

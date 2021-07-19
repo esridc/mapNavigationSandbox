@@ -232,9 +232,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       maxScale: 0,
     });
     layer.popupTemplate = {
-      title: "Popup Template Title",
-      content: "Popup Template Content? {sensorName}"
+      title: "Keyboard Navigation ",
+      content: `Click "Feature selection" in the menu above, then use "Tab" and "Shift-Tab" to move forward and back, and "Enter" and "esc" to move into and out of features!`
     }
+    layer.onclick = null;
 
     // // add clustering
     // const clusterConfig = {
@@ -471,21 +472,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         console.warn("Couldn't get statistics for styling field '"+fieldName+"':", e);
         break fieldStyle;
       }
-
-      // don't use predefined styles for now
-      // } else if (usePredefinedStyle) {
-      //   // check for built-in style passed in with the dataset
-      //   let predefinedStyle = dataset.attributes?.layer?.drawingInfo;
-      //   if (predefinedStyle && usePredefinedStyle) {
-      //     layer = await new FeatureLayer({
-      //       // renderer: jsonUtils.fromJSON(predefinedStyle.renderer),
-      //       // url
-      //     });
-      //   }
-      // }
-
-      // don't use predefined labelingInfo for now
-      // if (layer.labelingInfo && !usePredefinedStyle) {}
 
       // clear any existing labelingInfo sent from the server
       layer.labelingInfo = [ ];
@@ -933,8 +919,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       selectFeature();
     });
     document.querySelector('#featureModeButton').addEventListener('click', (e) => {
-      setMode("feature");
-      console.log('feature mode activated');
+      activateFeatureMode()
     });
     document.querySelector('#verboseCheckbox').addEventListener('click', (e) => {
       // toggle verbose
@@ -955,13 +940,21 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       else Tone.Transport.stop()
     });
     document.querySelector('#helpButton').addEventListener('click', (e) => {
-      setMode("help");
-      console.log('help button');
+      if (e.currentTarget.checked) {
+        setMode("help");
+      }
+      else {
+        setMode("menu");
+      }
     });
   }
 
   function setMode(mode) {
     keyboardModeState.mode = mode;
+    document.querySelector('#featureSelectionModeButton').checked = mode == "featureSelection" ? true : false;
+    document.querySelector('#featureModeButton').checked = mode == "feature" ? true : false;
+    document.querySelector('#helpButton').checked = mode == "help" ? true : false;
+    document.querySelector('#helpDivWrapper').style.display = mode == "help" ? "inline" : "none";
     modeStatus(mode);
   }
 
@@ -999,16 +992,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   async function updateFeatures() {
     let {view, layer} = state;
     if (!view) return false;
-    // let layerView = await view.whenLayerView(layer);
     // query visible features
     var query = layer.createQuery();
     query.geometry = view.extent;
-    console.log('querying map by extent:', view.extent);
     // query.spatialRelationship = "intersects";
-    query.spatialRelationship = "contains";
+    query.spatialRelationship = "contains"; // this might work better?
 
     var features = (await state.layer.queryFeatures(query)).features;
-    console.log('features:', features.length)
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
 
@@ -1085,6 +1075,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       }
       e.preventDefault();
     }
+    keyboardModeState = {...keyboardModeState, featureIndex}
     if (e.key == "Escape") { // back to menu
       setMode("menu");
       document.getElementById('keyboardModeMenu').focus();
@@ -1092,16 +1083,20 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       e.preventDefault();
     }
     if (e.key == "Enter") { // go into selected feature
-      if (feature) {
-        setMode("feature")
-        document.getElementById("placeLabel").focus();
-        statusAlert(`Feature #${featureIndex + 1} selected.`)
+        activateFeatureMode()
         e.preventDefault();
-      } else {
-        statusAlert("No feature selected.")
-      }
     }
-    keyboardModeState = {...keyboardModeState, featureIndex}
+  }
+
+  function activateFeatureMode() {
+    var { feature, featureIndex } = keyboardModeState;
+    if (feature) {
+      setMode("feature")
+      document.getElementById("placeLabel").focus();
+      statusAlert(`Feature #${featureIndex + 1} selected.`)
+    } else {
+      statusAlert("No feature selected.")
+    }
   }
 
   function featureHandler(e) {
@@ -1116,6 +1111,15 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function helpHandler(e) {
+    if (e.key == "Escape") { // back to menu
+      document.getElementById('helpDivWrapper').setAttribute
+      setMode("menu");
+      document.getElementById('keyboardModeMenu').focus();
+      e.preventDefault();
+    } else {
+
+    }
+
   }
 
   window.requests = [];
