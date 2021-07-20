@@ -14,16 +14,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   Map,
   MapView,
   FeatureLayer,
-
-  uniqueValues,
-  Legend,
-  colorRamps,
-
-  viewColorUtils,
-  LabelClass,
-  CIMSymbol,
-  cimSymbolUtils,
-
   esriRequest,
   webMercatorUtils,
   watchUtils,
@@ -33,20 +23,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/views/MapView",
   "esri/layers/FeatureLayer",
 
-  "esri/smartMapping/statistics/uniqueValues",
-  "esri/widgets/Legend",
-  "esri/smartMapping/symbology/support/colorRamps",
-
-  "esri/views/support/colorUtils",
-  "esri/layers/support/LabelClass",
-  "esri/symbols/CIMSymbol",
-  "esri/symbols/support/cimSymbolUtils",
-
   "esri/request",
   "esri/geometry/support/webMercatorUtils",
   "esri/core/watchUtils",
   "esri/geometry/Point",
-
 ]);
 
   // data urls
@@ -63,7 +43,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       layer: null,
       view: null,
       widgets: [],
-      bgColor: null,
       legend: null,
       categoricalMax: 7,
       fieldName: null,
@@ -81,40 +60,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     };
   }
 
-  const DATASET_FIELD_UNIQUE_VALUES = {}; // cache by field name
   var highlight = null;
 
   //
   // UTILITY FUNCTIONS
   //
-
-  // list all known widget DOM elements
-  function listWidgetElements() {
-    return [...document.getElementById('filtersList').querySelectorAll('[whereClause]')];
-  }
-
-  // concatenate all the where clauses from all the widgets
-  function concatWheres( { server = false } = {}) {
-    let whereClause = '';
-    let widgets = listWidgetElements();
-    // generate master here clause with simple string concatenation
-    for (const [x, widget] of widgets.entries()) {
-      if (x > 0) whereClause += ' AND ';
-      let widgetWhere = widget.getAttribute('whereClause');
-
-      // explicit cast for number-likes, for feature layer (server-side) queries ONLY
-      // skip for feature layer view (client-side) queries, which work *without* the cast (but fail with it)
-      const numberLike = widget.getAttribute('numberLike') === "true";
-      if (server && numberLike) {
-        const fieldName = widget.getAttribute('fieldName');
-        widgetWhere = widgetWhere.replace(fieldName, `CAST(${fieldName} AS FLOAT)`); // for number-like fields
-      }
-
-      whereClause += '(' + widgetWhere + ')';
-      // whereClause += '(' + widget.getAttribute('whereClause') + ')';
-    }
-    return whereClause;
-  }
 
   // draw whole map from scratch
   async function drawMap() {
@@ -168,29 +118,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     });
 
 
-    // add toggle checkboxes
-
-    // view.ui.add('zoomToData', 'top-right');
-    // const zoomToDataCheckbox = document.querySelector('#zoomToData calcite-checkbox');
-    // zoomToDataCheckbox.addEventListener('calciteCheckboxChange', () => {
-    //   updateLayerViewEffect();
-    // });
-
-    // view.ui.add('darkMode', 'top-right');
-    // darkModeCheckbox.addEventListener('calciteCheckboxChange', async () => {
-    //   state.view = await drawMap();
-    //   autoStyle({fieldName: state.fieldName})
-    // });
-
-    // view.ui.add('labels', 'top-right');
-    // const labelsCheckbox = document.querySelector('#labels calcite-checkbox');
-    // labelsCheckbox.addEventListener('calciteCheckboxChange', () => {
-    //   autoStyle({fieldName: state.fieldName})
-    // });
-
-
     // put vars on window for debugging
-    Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ uniqueValues, keyboardModeState, webMercatorUtils });
+    Object.assign(window, { state, map, /*histogram, histogramValues,*/ keyboardModeState, webMercatorUtils });
 
     // Dataset info
     // document.querySelector('#datasetName').innerHTML = dataset.attributes.name;
@@ -199,8 +128,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // update state
     state.view = view;
-    // bgColor needs state.view to be set first
-    state.bgColor = await getBgColor();
     return view;
   }
 
@@ -243,551 +170,58 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     }
     layer.onclick = null;
 
-    // // add clustering
-    // const clusterConfig = {
-    //   type: "cluster",
-    //   clusterRadius: "100px",
-    //   // {cluster_count} is an aggregate field containing
-    //   // the number of features comprised by the cluster
-    //   popupTemplate: {
-    //     title: "Cluster summary",
-    //     content: "This cluster represents {cluster_count} earthquakes.",
-    //     fieldInfos: [{
-    //       fieldName: "cluster_count",
-    //       format: {
-    //         places: 0,
-    //         digitSeparator: true
-    //       }
-    //     }]
-    //   },
-    //   clusterMinSize: "24px",
-    //   clusterMaxSize: "60px",
-    //   labelingInfo: [{
-    //     deconflictionStrategy: "none",
-    //     labelExpressionInfo: {
-    //       expression: "Text($feature.cluster_count, '#,###')"
-    //     },
-    //     symbol: {
-    //       type: "text",
-    //       color: "#004a5d",
-    //       font: {
-    //         weight: "bold",
-    //         family: "Noto Sans",
-    //         size: "12px"
-    //       }
-    //     },
-    //     labelPlacement: "center-center",
-    //   }]
-    // };
-
-    // layer.featureReduction = {
-    //   type: "cluster"
-    // };
-
     // update state
     state = {...state, layer, dataset};
 
-
-    state.usePredefinedStyle = false; // disable for now
-    // draw map once before autoStyling because getBgColor() requires an initialized layerView object
+    // draw map once before autoStyling to initialize layerView object
     state.view = await drawMap();
     autoStyle({});  // guess at a style for this field
 
     setKeyboardMode(true);
     // setMode('sound')
-
-
-  }
-
-  // https://stackoverflow.com/questions/6122571/simple-non-secure-hash-function-for-javascript
-  function getHash(s) {
-    var hash = 0;
-    if (s.length == 0) {
-        return hash;
-    }
-    for (var i = 0; i < s.length; i++) {
-        var char = s.charCodeAt(i);
-        hash = ((hash<<5)-hash)+char;
-        hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash);
   }
 
   //
   // STYLING
   //
 
-  // determine whether the map background is dark or light
-  async function getBgColor() {
-    const {view, layer} = state;
-    try {
-      // make sure there's a layerView, then
-      var bgColor = view.whenLayerView(layer).then(
-        // get and return the theme
-        async () => await viewColorUtils.getBackgroundColorTheme(view).then(theme => theme));
-    } catch(e) {
-      console.warn(`Couldn't detect basemap color theme - tab must be in foreground. Choosing "light."\n`, e)
-      bgColor = "light"; // set default bgColor
-    }
-    return bgColor;
-  }
-
-  // Choose symbology based on various dataset and theme attributes
-  async function autoStyle ({event = null, fieldName = null}) {
-    var {dataset, layer, view, usePredefinedStyle} = state;
+  // set symbology
+  async function autoStyle () {
+    var {layer, view} = state;
 
     // SET COLORS
 
-    // get basemap color theme: "light" or "dark"
-    var bgColor = await getBgColor();
-    state.bgColor = bgColor;
+    var fillColor = [173,216,230,255]; // lightblue
+    var strokeColor = [70,130,180,255]; // steelblue
 
-    // choose default colors based on background theme – dark on light, light on dark
-    // use rgb values because CIMSymbols don't understand web color names
-    var fillColor = bgColor == "dark" ? [0,196,210,255] : [173,216,230,255]; // lightblue and steelblue
-    var strokeColor = bgColor == "dark" ? [70,130,180,255] : [70,130,180,255]; // steelblue and white
-    // set bad-value colors
-    const badStrokeColor = geotype == "line" ? bgColor == "dark" ? [128,128,128,255] : [64,64,64,255] : [128,128,128,255]; // grey outlines
-    const badFillColor = [255,255,255,255]; // white fills
-    // set "other" colors for unique-value renderers
-    const otherStrokeColor = [128,128,128,255]; // grey
-    const otherFillColor = [192,192,192,255]; // light grey
-
-    var symbol;
     var renderer = {
       type: "simple", // autocasts as new SimpleRenderer()
       visualVariables: [],
     };
 
-    // declare shorthand geometry types
-    const geometryType = dataset.attributes.geometryType;
-    var geotype = (geometryType == 'esriGeometryPoint') ? 'point'
-                : (geometryType == 'esriGeometryMultiPoint') ? 'point'
-                : (geometryType == 'esriGeometryPolygon') ? 'polygon'
-                : (geometryType == 'esriGeometryLine') ? 'line'
-                : (geometryType == 'esriGeometryPolyline') ? 'line'
-                : geometryType;
-
-    // SET GEOMETRY
-
-    if (geotype === 'point') {
-      // use CIMSymbol so we can have sub-pixel outline widths
-      var cimsymbol = new CIMSymbol({
-        data:  {
-          type: "CIMSymbolReference",
-          symbol: {
-            type: "CIMPointSymbol",
-            symbolLayers: [{
-                type: "CIMVectorMarker",
-                enable: true,
-                size: 16,
-                frame: {
-                  xmin: 0,
-                  ymin: 0,
-                  xmax: 14,
-                  ymax: 14
-                },
-                markerGraphics: [{
-                  type: "CIMMarkerGraphic",
-                  geometry: {
-                    // circle geo taken from https://developers.arcgis.com/javascript/latest/sample-code/sandbox/index.html?sample=cim-primitive-overrides
-                    rings: [
-                      [
-                        [8.5, 0.2],[7.06, 0.33],[5.66, 0.7],[4.35, 1.31],[3.16, 2.14],[2.14, 3.16],[1.31, 4.35],[0.7, 5.66],[0.33, 7.06],[0.2, 8.5],[0.33, 9.94],[0.7, 11.34],[1.31, 12.65],[2.14, 13.84],[3.16, 14.86],[4.35, 15.69],[5.66, 16.3],[7.06, 16.67],[8.5, 16.8],[9.94, 16.67],[11.34, 16.3],[12.65, 15.69],[13.84, 14.86],[14.86, 13.84],[15.69, 12.65],[16.3, 11.34],[16.67, 9.94],[16.8, 8.5],[16.67, 7.06],[16.3, 5.66],[15.69, 4.35],[14.86, 3.16],[13.84, 2.14],[12.65, 1.31],[11.34, 0.7],[9.94, 0.33],[8.5, 0.2]
-                      ]
-                    ]},
-                  symbol: {
-                    type: "CIMPolygonSymbol",
-                    symbolLayers: [
-                      {
-                        type: "CIMSolidStroke",
-                        width: .45,
-                        color: strokeColor,
-                      },
-                      {
-                        type: "CIMSolidFill",
-                        color: fillColor,
-                      },
-                    ]
-                  }
-                }]
-            }]
-          }
-        }
-      });
-      symbol = cimsymbol;
-
-    } else if (geotype === 'line') {
-      symbol = {
-        type: 'simple-line',
-        width: '2px',
+    var symbol = {
+      type: 'simple-marker',
+      size: '9px',
+      color: fillColor,
+      outline: {
         color: strokeColor,
-      };
-
-    } else if (geotype === 'polygon') {
-      symbol = {
-        type: 'simple-fill',
-        color: fillColor,
-        outline: {
-          color: strokeColor,
-          width: 0.5,
-        },
-      };
-    }
-
-    // GET FIELD
-
-    // check for fieldName in args, the event object,
-    if (!fieldName) { fieldName = event?.currentTarget?.getAttribute('data-field'); }
-    // a displayField specified in the dataset,
-    if (!fieldName) { fieldName = dataset?.attributes?.displayField; }
-    // or just set default fieldName to "NAME"
-    if (!fieldName && dataset.attributes.fieldNames.includes("NAME")) { fieldName = "NAME"; }
-
-    // if there's a fieldName then style it by field
-    fieldStyle: // label this block so we can break out of it when necessary
-    if (fieldName) {
-      state.fieldName = fieldName; // used by toggle checkboxes
-      var field = getDatasetField(fieldName);
-      // TODO: don't use cached statistics, as they're frequently out-of-date and incomplete
-      var fieldStats = field.statistics;
-      if (fieldStats.values.length == 0) { // it happens
-        console.warn("Couldn't get statistics values for field '"+fieldName+"'.");
-        break fieldStyle;
+        width: '.5px'
       }
-      try {
-        // sometimes stats have .min and .max, sometimes they have .value and .count
-        var { categorical, pseudoCategorical } = await datasetFieldCategorical(fieldName);
-        var numberLike = await datasetFieldIsNumberLike(fieldName);
-        if (field.simpleType == "string" && numberLike) {
-          // recast values as numbers and resort
-          fieldStats.values = fieldStats.values.map(e => Object.assign({...e, value: parseFloat(e.value)}))
-            .sort((a, b) => a.value !== b.value ? a.value < b.value ? -1 : 1 : 0);
-        }
-        var minValue =
-          typeof fieldStats.values.min !== "undefined" ? fieldStats.values.min :
-          typeof fieldStats.values.length !== "undefined" ? fieldStats.values[0].value :
-          null;
-        var minLabel = minValue;
-        var maxValue =
-          typeof fieldStats.values.max !== "undefined" ? fieldStats.values.max :
-          typeof fieldStats.values.length !== "undefined" ? fieldStats.values[fieldStats.values.length -1].value :
-          null;
-        var maxLabel = maxValue;
-      } catch(e) {
-        console.warn("Couldn't get statistics for styling field '"+fieldName+"':", e);
-        break fieldStyle;
-      }
+    };
 
-      // clear any existing labelingInfo sent from the server
-      layer.labelingInfo = [ ];
-      var uniqueValues = (await getDatasetFieldUniqueValues(fieldName)).values;
-      var numGoodValues = uniqueValues.filter(i => !isBadValue(i.value)).length;
-
-      // STYLING
-
-      // reset colors – these will be used as "No value" symbols
-      symbol = copyAndColor(symbol, strokeColor, fillColor);
-
-      let {categoricalMax} = state;
-      if (categorical || (pseudoCategorical && !numberLike)) {
-        // your basic categorical field
-        // GET RAMP
-        let ramp = colorRamps.byName("Mushroom Soup");
-        let rampColors = ramp.colors;
-        var numColors = rampColors.length;
-
-        // if the field has only a single unique non-bad value, pick a single color, hashing by fieldName –
-        // this will be more likely to show a visual change when switching between two fields which both have a single value
-        if ( (numGoodValues == 1) ||
-            ((fieldStats.values.min && fieldStats.values.max) &&
-                (fieldStats.values.min === fieldStats.values.max))
-            ) {
-          var indexOffset = getHash(fieldName) % numColors; // pick an offset
-          // replace the entire ramp with a single color
-          rampColors = [rampColors[indexOffset]];
-          numColors = 1;
-        }
-
-        // sort by values - if only pseudocategorical leave it sorted by the default: prevalence
-        if (categorical) {
-          uniqueValues.sort((a, b) => a.value !== b.value ? a.value < b.value ? -1 : 1 : 0);
-        }
-        // TODO: sort before assigning color values? currently values are assigned color by frequency
-
-        // generate categorical colors for field
-        var uniqueValueInfos = [];
-        // pick a limit to the number of legend entries
-        const numEntries = categorical ? Math.min(uniqueValues.length, categoricalMax) : // the top categories
-                           pseudoCategorical <= categoricalMax ? pseudoCategorical : // the top pseudocategories
-                           5; // just show the top 5
-        if (numGoodValues == 0 && uniqueValues.length == 1) { // it happens
-          var defaultSymbol = copyAndColor(symbol, badStrokeColor, badFillColor);
-          var defaultLabel = "No value";
-        } else {
-          for (let x = 0; x < numEntries; x++) {
-            if (isBadValue(uniqueValues[x].value)) {
-              // style any bad points as white rings and lines as grey
-              var strokeColor = badStrokeColor;
-              var fillColor = badFillColor;
-
-            } else {
-              // rollover calculation
-              // TODO: interpolate over whole range to prevent duplicate colors
-              var indexOffset = x % numColors;
-              var strokeColor = [
-                // TODO: switch to proportional interpolation
-                rampColors[indexOffset].r * .5, // same as fillColor but half as bright
-                rampColors[indexOffset].g * .5,
-                rampColors[indexOffset].b * .5,
-                255 //alpha is always opaque
-              ];
-              // set fillColor
-              var fillColor = [
-                rampColors[indexOffset].r,
-                rampColors[indexOffset].g,
-                rampColors[indexOffset].b,
-                255 // alpha is always opaque
-              ];
-            }
-
-            // clone and color symbol
-            let uniqueSymbol = copyAndColor(symbol, strokeColor, fillColor);
-            // add symbol to the stack
-            uniqueValueInfos.push( {
-              value: uniqueValues[x].value || "",
-              label: field.simpleType == "date" ? formatDate(uniqueValues[x].value) :
-                      isBadValue(uniqueValues[x].value) ? "No value" :
-                      uniqueValues[x].value,
-              symbol: uniqueSymbol,
-            });
-          }
-        }
-
-        let numOthers = uniqueValues.length - numEntries;
-        // set defaults
-        if (numOthers > 0) {
-          // use the "other" default color for the long tail of categories
-          var defaultSymbol = copyAndColor(symbol, otherStrokeColor, otherFillColor);
-          var defaultLabel = (numOthers + " other") + (numOthers > 1 ? "s" : "");
-        }
-
-        // set renderer
-        renderer = {...renderer,
-          type: "unique-value",
-          defaultSymbol,
-          defaultLabel,
-          uniqueValueInfos,
-        };
-      } else if (numberLike) { // number-like and non-categorical
-        // SET RAMP
-        // custom ramp - pink to blue
-        var rMin = {r:255, g:200, b:221, a:255};
-        var rMax = bgColor == "dark" ? {r:61, g:79, b:168, a:255} : {r:21, g:39, b:128, a:255};
-
-        renderer.visualVariables.push({
-          type: "color",
-          field: fieldName,
-          stops: [{
-            value: minValue,
-            color: {r: rMin.r, g: rMin.g, b: rMin.b, a: 1},
-            label: (field.simpleType == "date") ? formatDate(minValue) : minLabel
-          },{
-            value: maxValue,
-            color: {r: rMax.r, g: rMax.g, b: rMax.b, a: 1},
-            label: (field.simpleType == "date") ? formatDate(maxValue) : maxLabel
-          }]
-        });
-
-        if (field.simpleType !== "date") {
-          // add one more midValue
-          var midValue = (parseFloat(maxValue)+parseFloat(minValue))/2;
-          // if min and max are integers, make mid integer too
-          if (numberLike && (Number.isInteger(parseFloat(maxValue)) && Number.isInteger(parseFloat(maxValue)))) {
-            midValue = parseInt(midValue+.5);
-          }
-          if (midValue != minValue && midValue !== maxValue) {
-            // ensure accurate placement of midValue along the ramp, in case of integer coersion
-            let divisor = (midValue-minValue)/(maxValue - minValue);
-            // color
-            var rMid = {r: (rMax.r + rMin.r) * divisor, g: (rMax.g + rMin.g) * divisor, b: (rMax.b + rMin.b) * divisor};
-            renderer.visualVariables[renderer.visualVariables.length-1].stops.push({
-                value: midValue,
-                color: {r: rMid.r, g: rMid.g, b: rMid.b, a: 1},
-                label: midValue,
-            });
-          }
-        }
-        // set default label
-        renderer.label = numGoodValues < uniqueValues.length ? "No value" : "Feature";
-      // if it's neither categorical nor number-like, use default styling but add labels
-      } else {
-        layer.labelingInfo = [ addLabels(fieldName) ];
-      }
-    } // end if (fieldName)
-
-    renderer = {...renderer, symbol, field: fieldName};
-
-    // also add labels if the "Labels on" toggle is checked
-    if (document.querySelector('#labels calcite-checkbox')?.checked && fieldName) {
-      layer.labelingInfo = [ addLabels(fieldName) ];
-    }
-
-    // SET SCALE
-
-    if (geotype == "point") {
-      renderer.visualVariables.push({
-        type: "size",
-        valueExpression: "$view.scale",
-        // zoom levels and scale values based on layerView.zoom and layerView.scale
-        stops: [
-          {
-            size: 3.5,
-            value: 36978595.474472 // z3
-          },
-          {
-            size: 4.5,
-            value: 577790.554289 // z9
-          },
-          {
-            size: 6,
-            value: 18055.954822 // z15
-          },
-        ]
-      });
-    } else if (geotype == "line") {
-      renderer.visualVariables.push({
-        type: "size",
-        valueExpression: "$view.scale",
-        stops: [
-          {
-            size: .5,
-            value: 1155581.108577 // z8
-          },
-          {
-            size: 1,
-            value: 577790.554289 // z9
-          },
-          {
-            size: 2,
-            value: 144447.638572 // z11
-          },
-        ]
-      });
-    }
-
-    // ADD LABELS
-
-    // add labels by default to polygons only for now
-    if (geotype == "polygon") {
-      if (!bgColor) {
-        // bgcolor might not be set if the tab wasn't visible when loaded, give it another chance
-        bgColor = await getBgColor();
-      }
-      if (fieldName) {
-        var expression = "$feature."+fieldName;
-        // label if field matches a few conditions:
-        if (
-          // there's more than one value
-          uniqueValues.length > 1 &&
-          (
-            (simpleFieldType == "string" && !numberLike) ||  // it's a non-numberlike string, or
-            (field.statistics.values.count == uniqueValues.length) // every value is unique
-          )
-        ){
-          // TODO: don't violate DRY (labels also set above)
-          const labels = new LabelClass({
-            labelExpressionInfo: expression ? { expression } : null,
-            symbol: {
-              type: "text",  // autocasts as new TextSymbol()
-              color: bgColor == "light" ? "#1e4667" : "black",
-              haloSize: 1.5,
-              haloColor: bgColor == "light" ? "white" : "black",
-              font: {
-                size: '14px',
-              }
-            }
-          });
-          layer.labelingInfo = [ labels ];
-        }
-      }
-    }
-
-    // ADD LEGEND
-
-    var {legend, view} = state;
-    if (fieldName) {
-      // remove and replace legend entirely rather than updating, to avoid dojo issues
-      view.ui.remove(legend);
-      legend = await new Legend({
-        view,
-      })
-      legend.layerInfos = [{
-        layer,
-      }]
-      view.ui.add(legend, "bottom-right");
-    } else {
-      view.ui.remove(legend);
-      legend = null;
-    }
+    renderer = {...renderer, symbol};
 
     layer.renderer = renderer; // replace the old renderer
     layer.refresh(); // ensure the layer draws
 
     // update state
-    state = {...state, layer, view, renderer, bgColor, legend}
-    // keyboardModeState.sonar = true;
+    state = {...state, layer, view, renderer}
   } // end autoStyle
+
 
   //
   // STYLING UTILITY FUNCTIONS
   //
-
-  // check for weirdness
-  function isBadValue(value) {
-    return (value === null ||          // null
-            value === "" ||            // empty string
-            (/^\s+$/.test(value)));   // all whitespace
-  }
-
-  // copy a symbol and apply colors
-  function copyAndColor(symbol, strokeColor, fillColor) {
-    if (symbol.type == 'cim') {
-      // clone symbol
-      var newSymbol = symbol.clone();
-      cimSymbolUtils.applyCIMSymbolColor(newSymbol, fillColor);
-      newSymbol.data.symbol.symbolLayers[0].markerGraphics[0].symbol.symbolLayers[0].color = strokeColor;
-    } else {
-      newSymbol = Object.assign({}, symbol);
-      newSymbol.color = fillColor;
-      if (symbol.type !== "simple-line") {
-        newSymbol.outline.color = strokeColor;
-      }
-    }
-    return newSymbol;
-  }
-
-
-  // add labels to a layer
-  function addLabels(fieldName) {
-    return new LabelClass({
-      labelExpressionInfo: { expression: "$feature."+fieldName },
-      symbol: {
-        type: "text",  // autocasts as new TextSymbol()
-        color: state.bgColor == "light" ? "#1e4667" : "white",
-        haloSize: 1.5,
-        haloColor: state.bgColor == "light" ? "white" : "black",
-        font: {
-          size: '14px',
-        }
-      }
-      // these ArcGIS label class properties don't exist in the JSAPI ... yet
-      // removeDuplicates: "all",
-      // removeDuplicatesDistance: 0,
-      // repeatLabel: false,
-      // repeatLabelDistance: 500,
-    });
-  }
 
   // get geometrical extent of dataset features
   function getDatasetExtent (dataset) {
@@ -800,118 +234,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       spatialReference: extent.spatialReference
     };
   }
-
-  // get a field object from a field name
-  function getDatasetField (fieldName) {
-    let lc_fieldName = fieldName.toLowerCase();
-    const field = state.dataset.attributes.fields.find(f => f.name.toLowerCase() === lc_fieldName);
-    if (!field) {
-      throw new Error(`Could not find field "${fieldName}" in dataset.`);
-    }
-    const stats = [...Object.entries(state.dataset.attributes.statistics).values()].find(([, fields]) => fields[lc_fieldName]);
-
-    // add "simple type" (numeric, date, string) and stats into rest of field definition
-    return {
-      ...field,
-      simpleType: stats && stats[0],
-      statistics: stats && stats[1][lc_fieldName].statistics
-    }
-  }
-
-  // get the unique values of a field
-  async function getDatasetFieldUniqueValues (fieldName) {
-    var {layer} = state;
-    if (!DATASET_FIELD_UNIQUE_VALUES[fieldName]) {
-      const field = getDatasetField(fieldName);
-      let stats;
-    if (layer) {
-      const uniqueValueInfos = (await uniqueValues({ layer: state.layer, field: fieldName }))
-        .uniqueValueInfos
-        .sort((a, b) => a.count > b.count ? -1 : 1);
-        const count = uniqueValueInfos.reduce((count, f) => count + f.count, 0);
-        stats = {
-          count,
-          uniqueCount: uniqueValueInfos.length,
-          values: uniqueValueInfos
-        }
-      }
-      stats.uniqueCount = stats.values.length;
-      // add percent of records
-      stats.values = stats.values
-      // .filter(v => v.value != null && (typeof v.value !== 'string' || v.value.trim() !== ''))
-      .map(v => ({ ...v, pct: v.count / stats.count }));
-      // get top values
-      const maxTopValCount = 12;
-      // stats.topValues = stats.values.slice(0, maxTopValCount);
-      stats.topValues = [];
-      if (stats.uniqueCount < maxTopValCount) {
-        stats.topValues = stats.values;
-      } else {
-        let coverage = 0;
-        for (let i=0, coverage=0; i < stats.values.length; i++) {
-          // let stat = { ...stats.values[i], pct: stats.values[i].count / recordCount };
-          const stat = stats.values[i];
-          // if (coverage >= 0.80 && stat.pct < 0.05 && stats.topValues.length >= maxTopValCount) break;
-          if (stat.pct < 0.015 || stats.topValues.length >= maxTopValCount) break;
-          stats.topValues.push(stat);
-          coverage += stat.pct;
-        }
-      }
-      // cache
-      DATASET_FIELD_UNIQUE_VALUES[fieldName] = stats;
-    }
-    return DATASET_FIELD_UNIQUE_VALUES[fieldName];
-  }
-
-  // Determine if field is categorical or pseudo-categorical
-  async function datasetFieldCategorical (fieldName) {
-    var {categoricalMax} = state;
-    const field = await getDatasetField(fieldName);
-    const stats = await getDatasetFieldUniqueValues(fieldName);
-    const categorical = stats.uniqueCount <= categoricalMax;
-    const pseudoCategoricalMin = .8; // the proportion of unique values to total values is < 80%
-    // sum the values until you reach at least pseudoCategoricalMin
-    const coverage = Object.values(stats.values).reduce(
-      // accumulator object - pull .pct from each value
-      ({sum, i}, {pct}) =>
-        (sum < pseudoCategoricalMin ? // still not there?
-        {sum: sum + pct, i: i + 1} : // keep adding
-        {sum, i}), // otherwise just keep returning the current value
-          // TODO: break once the value is reached
-        {sum: 0, i: 0}); // init value
-    // return the number of unique values which comprise pseudoCategoricalMin% of the features, or false
-    const pseudoCategorical = coverage.sum >= pseudoCategoricalMin ? coverage.i : false;
-    return { categorical, pseudoCategorical };
-  }
-
-  // Determine if field is number-like, e.g. is a number or all non-null values can be parsed as such
-  async function datasetFieldIsNumberLike (fieldName) {
-    const field = getDatasetField(fieldName);
-    if (field.simpleType === 'numeric') { // explicit number type
-      return true;
-    } else { // or check the known values to see if they're all integers
-      const stats = await getDatasetFieldUniqueValues(field.name);
-      return stats.values.every(v => v.value == null || !isNaN(Number(v.value)));
-    }
-  }
-
-  function simpleFieldType (fieldType) {
-    const fieldTypes = {
-      esriFieldTypeGlobalID: 'text',
-      esriFieldTypeGUID: 'text',
-      esriFieldTypeDate: 'date-time',
-      esriFieldTypeString: 'string',
-      esriFieldTypeSingle: 'number',
-      esriFieldTypeFloat: 'number',
-      esriFieldTypeDouble: 'number',
-      esriFieldTypeInteger: 'number',
-      esriFieldTypeSmallInteger: 'number',
-      esriFieldTypeOID: 'number',
-    };
-
-    return fieldTypes[fieldType] || '';
-  }
-
 
   //
   // KEYBOARD NAVIGATION MODE
@@ -970,10 +292,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     const keyboardMenu = document.querySelector('#keyboardModeMenu');
     if (value) { // keyboard mode on
       // show keyboard mode menu
-      keyboardMenu.classList.remove("hidden");
-      statusAlert('KeyboardMode on.');
-      document.activeElement.blur();
-      keyboardMenu.focus();
+      // (always on for now)
+      // keyboardMenu.classList.remove("hidden");
+      // statusAlert('KeyboardMode on.');
+      // document.activeElement.blur();
+      // keyboardMenu.focus();
       setMode("menu");
 
       window.addEventListener('keydown', keyboardModeHandler);
@@ -1120,9 +443,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       document.getElementById('keyboardModeMenu').focus();
       e.preventDefault();
     } else {
-
     }
-
   }
 
   window.requests = [];
@@ -1131,7 +452,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function popupContent(feature) {
     // Abort any outstanding requests
     if (requests.length > 0) {
-
       // (At the moment there's no code path to > 1 request, but there was once, and may be later)
       requests.map((r, i) => {
         // Abort requests that are aware of the controller's signal
@@ -1773,7 +1093,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         statusAlert(placeName);
         keyboardModeState.lastPlace = placeName;
       }
-
 
     }).catch((err) => {
       if (err.name === 'AbortError') {
