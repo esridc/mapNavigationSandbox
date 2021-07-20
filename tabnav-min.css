@@ -1,40 +1,10 @@
-/* aloglia autocomplete.js styles */
-
-.algolia-autocomplete {
-  width: 100%;
-  display: flex;
-}
-.algolia-autocomplete .aa-input, .algolia-autocomplete .aa-hint {
-  width: calc(100% - 15px);
-}
-.algolia-autocomplete .aa-hint {
-  color: #999;
-}
-.algolia-autocomplete .aa-dropdown-menu {
-  width: 100%;
-  background-color: #fff;
-  border: 1px solid #999;
-  border-top: none;
-  /* position: absolute; */
-}
-.algolia-autocomplete .aa-dropdown-menu .aa-suggestion {
-  cursor: pointer;
-  padding: 5px 4px;
-}
-.algolia-autocomplete .aa-dropdown-menu .aa-suggestion.aa-cursor {
-  background-color: #B2D7FF;
-}
-.algolia-autocomplete .aa-dropdown-menu .aa-suggestion em {
-  font-weight: bold;
-  font-style: normal;
-}
-
 /* main styles */
 
 body {
   display: flex;
   font-family: "Avenir Next W01", "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 16px;
+  background-color: #CFD3D4;
 }
 
 html,
@@ -328,6 +298,7 @@ body,
 }
 
 #status {
+  display: none;
   position: absolute;
   bottom: 0px;
   border: 2px solid gold;
@@ -346,6 +317,8 @@ body,
   outline: 2px solid gray;
   background-color: #ddd;
   padding: 4px;
+  margin: 10px;
+  position: absolute;
 }
 
 #keyboardModeMenu > button {

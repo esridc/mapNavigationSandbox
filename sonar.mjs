@@ -978,14 +978,15 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
       updateFeatures();
 
-    } else if (!value) { // keyboard mode off
-      statusAlert('KeyboardMode off.');
-      // hide keyboard mode menu
-      // state.view.ui.remove('keyboardModeMenu');
-      setMode(null)
-      state.view.popup.close();
-      window.removeEventListener('keydown', keyboardModeHandler);
-      keyboardMenu.classList.add("hidden");
+      // keyboard mode always on for now
+    // } else if (!value) { // keyboard mode off
+    //   statusAlert('KeyboardMode off.');
+    //   // hide keyboard mode menu
+    //   // state.view.ui.remove('keyboardModeMenu');
+    //   setMode(null)
+    //   state.view.popup.close();
+    //   window.removeEventListener('keydown', keyboardModeHandler);
+    //   keyboardMenu.classList.add("hidden");
     }
   }
 
@@ -1036,9 +1037,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     if (e.key == "Escape") {
       setKeyboardMode(false);
     }
-    // if (e.key == "Tab") {
-    //   sonarSetup();
-    // }
   }
 
   // featureSelection mode
