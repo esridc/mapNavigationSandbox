@@ -1,10 +1,8 @@
 <!--
 
-  This is an experiment in auto-styling dataset visualizations based on auto-detected datatypes.
-
-  Example dataset:
-  http://192.168.1.108:8080/auto-styling.html?dataset=8581a7460e144ae09ad25d47f8e82af8_0
-
+  This is an experiment in non-mouse map navigation made in the Esri R&D Center DC.
+  Peter Richardson July 2021
+  pxrich@gmail.com
 
 -->
 
@@ -30,65 +28,22 @@
 </head>
 
 <body>
-  <!-- <div id="sidebar" tabindex="1">
-    <div id="sidebarItems">
-
-      <select id="datasetList"></select>
-      <div id="datasetName" ></div>
-      <div>
-        <span id="orgName"></span>
-        <span id="recordCount"></span>
-      </div>
-
-      <div class="section">
-        <span class="sectionHead">Filters:</span>
-        <span id="filtersCount"></span>
-
-        <div id="filtersList">
-        </div>
-        <span id="label">Filter <span id="featuresCount"></span> features:</span>
-        <calcite-input type="search" scale="s" id="filterAttributeSearch" placeholder="Search Attributes by Name" aria-label="Search attributes"></calcite-input>
-
-        <div id="filterAttributeList">
-        </div>
-      </div>
-
-      <div class="section">
-        <span id="label">Style by Attribute:</span>
-        <calcite-input type="search" scale="s" id="styleAttributeSearch" placeholder="Search Attributes by Name" aria-label="Search stories"></calcite-input>
-        <div id="styleAttributeList">
-        </div>
-      </div>
-
-    </div>
-  </div> -->
-  <!-- <div id="zoomToData" class="esri-widget">
-    <label>
-      <calcite-checkbox checked="true"></calcite-checkbox>Zoom to data
-    </label>
-  </div> -->
-  <!-- <div id="darkMode" class="esri-widget">
-    <label>
-      <calcite-checkbox checked="false"></calcite-checkbox>Dark mode
-    </label>
+  <div id="header"><div class="title">Esri Sonar Map</div>
+    <div class="subtitle"><a href="https://dc.esri.com/">Esri R&D Center DC</a></div>
   </div>
-  <div id="labels" class="esri-widget">
-    <label>
-      <calcite-checkbox checked="false"></calcite-checkbox>Force labels
-    </label>
-  </div> -->
-  
+
+  <div id="content">
   <div id="keyboardModeMenu" tabindex="0" class="sidebar">
     
     <div class="sidebarItems">
       <h1>Menu</h1>
       <div>
         <input type="checkbox" tabindex="0" id="featureSelectionModeButton" aria-labelledby="featureSelectionModeLabel"></input>
-        <label id="featureSelectionModeLabel">Feature selection</label>
+        <label id="featureSelectionModeLabel">Feature&nbsp;Selection</label>
       </div>
       <div>
         <input type="checkbox" tabindex="0" id="featureModeButton" aria-labelledby="featureModeLabel"></input>
-        <label id="featureModeLabel">Inspect Feature</label>
+        <label id="featureModeLabel">Inspect&nbsp;Feature</label>
       </div>
       <div>
         <input type="checkbox" tabindex="0" id="verboseCheckbox" aria-labelledby="verboseLabel"></input>
@@ -126,9 +81,10 @@
     </div>
   </div>
   <div id="helpDivWrapper">
-    <b>Esri Sonar Map</b>
     <div id="helpDiv" role="alert">
-      <p>This is a map of the world which uses non-visual navigation. It shows 2000 global features from a water quality database.</p>
+      <b>Sonar Map</b>
+      <p>Press escape to close this message.</p>
+      <p>This map of the world uses non-visual navigation. It shows 2000 global features from a water quality database.</p>
 
       <p>The arrow keys will move the map. The "z" and "x" keys will zoom in and out. Zoom 0 shows the whole world, zoom 6 is roughly the size of a country, zoom 12 is city level, and zoom 16 shows individual streets. The "c" key will center and zoom in on a selected feature.</p>
 
@@ -136,15 +92,15 @@
 
       <p>There is a menu with five checkboxes. Pressing enter on each will toggle the selected mode.</p>
 
-      <p>1) Feature selection. Press Tab and Shift-tab to move forward and back through onscreen features. Press escape to exit selection mode and return to the menu. Press Enter to examine a selected feature's data.</p>
+      <p>1) Feature selection. In this mode, press Tab and Shift-tab to move forward and back through onscreen features. Press escape to exit selection mode and return to the menu. Press Enter to examine a selected feature's data.</p>
 
-      <p>2) Inspect feature. Press Tab and Shift-tab to move forward and back through a selected feature's attributes. Press escape to leave the feature and return to selection mode.</p>
+      <p>2) Inspect feature. In this mode, press Tab and Shift-tab to move forward and back through a selected feature's attributes. Press escape to leave the feature and return to selection mode.</p>
 
-      <p>3) Verbose. This mode will announce zoom levels and a geolocation result for the part of the map in the center of the screen.</p>
+      <p>3) Verbose. When navigating the map, this mode will announce zoom levels and a geolocation result for the part of the map in the center of the screen.</p>
 
-      <p>4) Sonar. This mode converts the onscreen features to a musical score from left to right, with relative vertical screen position converted to pitch. A sonar ping will play when the map is moved. The "s" key will also send a ping. When this mode is activated, individual features will be played in Feature selection mode.</p>
+      <p>4) Sonar. This mode sends sonar pings when the map moves. Each ping converts the onscreen features to a musical score from west to east, with relative vertical screen position converted to pitch. The "s" key will also trigger a ping. When this mode is active, individual features will be played in Feature selection mode.</p>
 
-      <p>5) Help. This button shows this help text. Press escape to close it.</p>
+      <p>5) Help. This button shows this help text. Press escape to close it and return to the menu.</p>
     </div>
   </div>
 
@@ -177,8 +133,10 @@
         </svg>
         <div class="loader-bars"></div>
       </div>
+    </div>    
       </div>    
-    </div>
-
+    </div>    
+  </div>
+</div>
 </body>
 </html>

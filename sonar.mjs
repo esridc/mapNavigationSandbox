@@ -89,7 +89,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let loadedOnce = false;
     view.watch('updating', function(evt){
       if (loadedOnce) return false;
-      document.getElementById('base-loader').style.visibility = evt === true ? 'visible' : 'hidden';
+      if (!evt) document.getElementById('base-loader').style.display = 'none';
       loadedOnce = true;
     });
 
@@ -223,11 +223,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // bind events for keyboard mode menu options
     document.querySelector('#featureSelectionModeButton').addEventListener('click', (e) => {
       setMode("featureSelection");
-      console.log('feature selection mode activated');
       selectFeature();
     });
     document.querySelector('#featureModeButton').addEventListener('click', (e) => {
-      activateFeatureMode()
+      selectFeature().then(() => activateFeatureMode());
+      document.querySelector("#popup-content>#placeLabel").focus();
     });
     document.querySelector('#verboseCheckbox').addEventListener('click', (e) => {
       // toggle verbose
@@ -241,8 +241,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       }
     });
     document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
-      console.log('sonar checkbox');
-      // setMode("sound");
       // toggle sound
       if (e.currentTarget.checked) sonarSetup();
       else Tone.Transport.stop()
@@ -258,11 +256,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function setMode(mode) {
+    console.log('setMode:', mode);
     keyboardModeState.mode = mode;
     document.querySelector('#featureSelectionModeButton').checked = mode == "featureSelection" ? true : false;
     document.querySelector('#featureModeButton').checked = mode == "feature" ? true : false;
     document.querySelector('#helpButton').checked = mode == "help" ? true : false;
-    document.querySelector('#helpDivWrapper').style.display = mode == "help" ? "inline" : "none";
+    document.querySelector('#helpDivWrapper').style.display = mode == "help" ? "flex" : "none";
     modeStatus(mode);
   }
 
@@ -277,7 +276,9 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // statusAlert('KeyboardMode on.');
       // document.activeElement.blur();
       // keyboardMenu.focus();
-      setMode("menu");
+
+      // show help every time
+      setMode("help")
 
       window.addEventListener('keydown', keyboardModeHandler);
       if (!view) {
@@ -389,17 +390,29 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       e.preventDefault();
     }
     if (e.key == "Enter") { // go into selected feature
-        activateFeatureMode()
+        activateFeatureMode().then(() => document.querySelector("#popup-content>#placeLabel").focus());
         e.preventDefault();
     }
   }
 
-  function activateFeatureMode() {
+  async function activateFeatureMode() {
+    console.log('activateFeatureMode');
     var { feature, featureIndex } = keyboardModeState;
     if (feature) {
+      console.log('feature');
       setMode("feature")
-      document.getElementById("placeLabel").focus();
       statusAlert(`Feature #${featureIndex + 1} selected.`)
+      if (!state.view.popup.visible) {
+        state.view.popup.watch('content', (e) => {
+          if (document.querySelector("#popup-content>#placeLabel") != null) {
+            if (document.querySelector("#popup-content>#placeLabel").innerText != "") {
+            console.log('placeLabel?', document.querySelector("#popup-content>#placeLabel"));
+            document.querySelector("#popup-content>#placeLabel").focus();
+          }
+          }
+        })  
+        state.view.popup.open();
+      }
     } else {
       statusAlert("No feature selected.")
     }
@@ -646,7 +659,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         }
 
       } else if (e.key == 'c') {
-        state.view.goTo(keyboardModeState.feature)
+        state.view.goTo({
+          target: keyboardModeState.feature,
+          zoom: state.view.zoom + 2
+        })
+
       } else if (e.key == 'z') {
         // TODO: error noises when hitting zoom and extent limits
         // if (state.view.zoom < 22) { // effective view.constraints.maxZoom
@@ -1065,7 +1082,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       let z = state.view.zoom;
       let placeName = '';
       if (z < 6) placeName = geoJson.address.Region;
-      else if (z < 14) placeName = geoJson.address.Match_addr;
+      else if (z < 14) placeName = geoJson.address.Subregion;
       else if (z < 20) placeName = geoJson.address.LongLabel;
       if (placeName == '') placeName = geoJson.address.ShortLabel;
       console.log('region:', placeName)
@@ -1084,4 +1101,5 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   initKeyboardMode();
+
 })();

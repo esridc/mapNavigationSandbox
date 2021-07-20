@@ -1,46 +1,74 @@
 /* main styles */
 
 body {
-  display: flex;
+  /* display: flex; */
   font-family: "Avenir Next W01", "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 16px;
   background-color: #CFD3D4;
 }
 
 html,
-body,
-#viewDiv {
-  height: 100vh;
+body {
   width: 100%;
+  height: 100%;
   padding: 0;
   margin: 0;
-  flex: auto;
-  overflow: hidden;
-  position: relative;
-}
-
-.sidebar {
-  height: 100%;
-  padding: 20px;
-  /* margin: 0px 12px; */
-  flex: auto;
-  border-right: 2px solid gray;
-  overflow-y: scroll;
-  overflow-x: hidden;
-}
-
-#sidebarItems {
   display: flex;
   flex-direction: column;
 }
 
-#sidebarItems > * {
-  flex: auto;
-  margin-bottom: 10px;
+#header {
+  background-color: steelblue;
+  color: white;
+  clear: both;
+  font-family: 'Avenir Next';
+  font-weight: bolder;
+  padding: 20px;
 }
 
-#sidebarItems:first-child {
-  margin-top: 10px;
+#content {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.sidebar {
+  z-index: 1;
+  order: 1;
+  padding: 20px;
+  width: 25%;
+  background-color: rgb(225, 225, 225);
+  /* border-right: .15px solid gray; */
+  box-shadow: 0 0 6px rgb(0 0 0 / 30%);
+}
+
+.title {
+  font-size: 36px;
+}
+
+.subtitle {
+  font-weight: bolder;
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+#viewDiv {
+  order: 2;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+}
+
+
+#sidebarItems {
+  white-space: nowrap;
+}
+
+#sidebarItems > * {
+  margin-bottom: 10px;
 }
 
 .sidebarItemHeader {
@@ -48,95 +76,9 @@ body,
   /* position: relative; */
 }
 
-#datasetName {
-  font-size: 24px;
-}
-
-#recordCount {
-  margin-left: 12px;
-  color: #828282;
-}
-
-#widgets {
-  /* padding: 0; */
-  margin: 0;
-}
-
-.widget {
-  outline: 2px solid gray;
-  padding: 10px;
-  margin: 12px 0px;
-}
-
-.histogramWidget {
-  height: 80px;
-  width: 90%;
-  padding-left: 5%;
-  padding-bottom: 5px;
-}
-
-.miniHistogram {
-  height: 20px;
-}
-
-.widgetLabel {
-  font-size: .9em;
-}
-
 #stylingAttribute {
   margin: 10px;
   list-style-position: inside;
-}
-
-#resultsTable {
-  position: absolute;
-  right: 0px;
-  font-size: 12px;
-  color: white;
-  background-color: black;
-  border: 2px solid white;
-  display: inline-table;
-  padding: 10px;
-  box-shadow: none;
-}
-
-#filterAttributeList {
-  height: auto;
-  max-height: 10.5em;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  margin: 0 0 10px 0;
-  padding-right: 10px;
-  border: 1px solid lightgray;
-}
-#styleAttributeList {
-  height: auto;
-  max-height: 10.5em;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  margin: 0 0 10px 0;
-  padding-right: 10px;
-  border: 1px solid lightgray;
-}
-
-#filtersList {
-  height: auto;
-  /* min-height: 10em; */
-  /* max-height: 20.5em; */
-  line-height: normal;
-  overflow-x: hidden;
-  margin: 0;
-  overflow: visible;
-  /* border: 1px solid lightgray; */
-}
-
-.filterDiv {
-  position: relative;
-  font-size: 14px;
-  margin: 5px 0px 10px 0px;
-  padding: 3px;
-  border: 1px solid lightgray;
-  /* box-shadow: 2px 2px 5px lightgrey; */
 }
 
 ::-webkit-scrollbar {
@@ -150,146 +92,8 @@ body,
   box-shadow: 0 0 1px rgba(255, 255, 255, .5);
 }
 
-#filterResults {
-  outline: 1px solid lightgray;
-}
-
-.attribute {
-  color: black;
-  margin-left: 5px;
-}
-
-/* hide bullet */
-.attribute:hover::before, .attribute::before{
-  display: none;
-}
-.attributeRange {
-  color: #227cb4;
-  font-size: .7em;
-  margin-left: 5px;
-}
-
-.filterIcons {
-  position: absolute;
-  float: right;
-  margin: -3px -2px 3px 0;
-  white-space: nowrap;
-  right: 0px;
-  z-index: 1;
-}
-
-.filterIcons:hover {
-  color: white;
-  background-color: darkred;
-  cursor: pointer
-}
-
-.filterIcons:hover .tooltip {
-  display: inline;
-}
-
-#attributeSearch {
-  margin: 0;
-  /* padding: 0; */
-}
-
-#attributesCount {
-  float: right;
-}
-
-.tooltip {
-  display: none;
-  color: black;
-  background-color: white;
-  outline: 2px solid red;
-  z-index: 100;
-  padding: 2px;
-  margin: -2px 2px;
-}
-
-.sectionHead {
-  font-weight: bold;
-  /* margin-bottom: -10px; */
-}
-
-#filtersCount {
-  float: right;
-}
-
-.valueListWidget {
-  white-space: nowrap;
-  position: relative;
-}
-.valueListWidget label {
-  padding: 4px 0px;
-  overflow-y: auto;
-  height: 100%;
-}
-
-.valueListWidget label > .subText {
-  margin-left: 8px;
-  color: #828282;
-  font-size: 14px;
-}
-
-.valueListWidget > .valueListCheckbox {
-  /* display: inline-block; */
-}
-
-.valueListCheckbox {
-  overflow-x: hidden;
-  display: flex;
-  font-size: 13px;
-}
-
-.valueListCheckbox > calcite-checkbox {
-  top: 2px;
-  margin-right: 2px;
-  margin-left: 4px;
-}
-
-.valueListWidget label:hover .subText {
-/*     display: inline; */
-}
-
-.valueListSearchBox {
-  font-family: "Avenir Next W01", "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 14px;
-  z-index: 10000;
-  /* margin: 4px; */
-}
-
-.valueListSearchBoxWrapper {
-  /* position: absolute; */
-  /* overflow: visible; */
-}
-
-.valueListSideLink {
-  position: absolute;
-  margin-top: 2px;
-  right: 10px;
-  display: none;
-  float: right;
-  color: #005e95; /* calcite dark-blue */
-}
-
-.valueListWidget *:hover > .valueListSideLink {
-  display: inline;
-}
-
-#label {
-  font-size: 16px;
-  margin-bottom: 2px;
-  display: inline-block;
-}
-
-.inactive {
-  color: #666;
-  background-color: #ddd;
-}
-
 :focus {
-  border: 2px solid blue;
+  outline: 2px solid blue;
 }
 
 .hidden {
@@ -300,7 +104,6 @@ body,
   display: none;
   position: absolute;
   bottom: 0px;
-  border: 2px solid gold;
   padding: 10px;
   background: white;
   opacity: 50%;
@@ -317,44 +120,65 @@ body,
 }
 
 #alertDivWrapper {
+  z-index: 1;
   text-transform: uppercase;
   font-size: 10px;
   font-weight: bold;
   position: absolute;
   right: 0;
+  background-color: white;
+  padding: 10px;
+  margin: 10px;
+  border: 2px solid gray;
 }
 #alertDiv {
+  margin-top: 10px;
   text-transform: none;
   font-variant: normal;
   font-size: medium;
   font-weight: normal;
-  border: 2px solid gold;
 }
 
 #helpDivWrapper {
-  position: absolute;
   display: none;
-  background-color: white;
-  margin: 50px;
-  border: 2px solid black;
-  padding: 20px;
+  position: absolute;
   z-index: 2;
+  width: 100%;
+  pointer-events: none;
 }
 
+#helpDiv {
+  background-color: white;
+  margin: 50px auto;
+  border: 2px solid black;
+  padding: 20px;
+  max-width: 900px;
+}
+
+
+/* 
+/* 
 /* loader stolen from dc.esri.com */
+/* 
+/* 
+*/
+
+#loaderWrapper {
+  width: 50%;
+  height: 50%;
+  pointer-events: none;
+}
+
+
 #base-loader {
-  z-index: 1;
-  display:block;
+  z-index: 2;
   fill:none;
   stroke:#009af2;
   animation:loader-color-shift 2s alternate-reverse infinite linear;
-  height:54px;
-  margin: 0;
-  position: absolute;
-  top: 50%;
-  -ms-transform: translateY(-50%);
-  transform: translateY(-50%);
+  height: calc(100% - 54px);
+  transform: translateX(50%) translateY(100%);
 }
+
 #base-loader svg.loader-square {
   position:absolute;
   left:0;
@@ -450,12 +274,4 @@ body,
   box-shadow:0 -5px #0079c1;
   height:25px
 }
-}
-
-#loaderWrapper {
-  position: absolute;
-  width: 54px;
-  right: 50%;
-  height: 100%;
-  z-index: 2;
 }
