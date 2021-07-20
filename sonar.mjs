@@ -1566,7 +1566,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // to ensure the minimum is always less than the maximum, and the center is between them
       let wrapFactor = (view.center.x / EARTH_CIRC);
       wrapFactor = Math.ceil(Math.round(wrapFactor));
-      console.log('wrapFactor:', wrapFactor);
+      // console.log('wrapFactor:', wrapFactor);
 
       // TODO: do I need to wraparound all the feature positions? If I do, should I use geo or webmercator?
       // positions = positions.map(a => [a[0] + (EARTH_CIRC * wrapFactor), a[1] + (EARTH_CIRC * wrapFactor)]);
@@ -1577,8 +1577,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       xMax = center[0] + (EARTH_CIRC / 2);
     }
 
-    console.log('xMin:', xMin);
-    console.log('xMax:', xMax);
+    // console.log('xMin:', xMin);
+    // console.log('xMax:', xMax);
 
     // don't use this: keep the pitches relative to the viewport, not the visible map
 
@@ -1606,8 +1606,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let scale = getPentatonic(pitches);
     var score = [];
 
-    console.log('notes:', notes, 'dx:', xRange / notes)
-    console.log('pitches:', pitches, 'dy:', yRange / pitches)
+    // console.log('notes:', notes, 'dx:', xRange / notes)
+    // console.log('pitches:', pitches, 'dy:', yRange / pitches)
 
     // set up rectbin
     var rectbin = d3.rectbin()
@@ -1630,7 +1630,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     function displayBins(bins) {
       let binContents = [];
       bins.forEach(x => binContents.push(x.length))
-      console.log(binContents);
+      // console.log(binContents);
       let binOutput = [];
       let outputString = '\n';
       try {
@@ -1668,7 +1668,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let maxVelocity = bins.reduce((a, b )=> Math.max(a, b.length), 0);
     // console.log('bins:', bins.length, 'maxvelocity:', maxVelocity)
     let volume = 2; // this one goes to Infinity
-    console.log('duration/notes:', duration, notes, duration/notes);
+    // console.log('duration/notes:', duration, notes, duration/notes);
 
     var output = []; // debugging
 
@@ -1679,8 +1679,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let binsJMax = bins[bins.length-1].j;
     let binsIRange = binsIMax - binsIMin;
     let binsJRange = binsJMax - binsJMin;
-    console.log('binsJMin:', binsJMin);
-    console.log('binsJRange:', binsJRange);
+    // console.log('binsJMin:', binsJMin);
+    // console.log('binsJRange:', binsJRange);
 
     for (var x = 0; x < bins.length; x++) {
       var note = 0;
