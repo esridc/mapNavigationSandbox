@@ -19,34 +19,12 @@
   <title>Tab Navigation Demo</title>
   <link href="tabnav-min.css" rel="stylesheet">
 
-  <!-- <script src="https://unpkg.com/lodash@4.17.15/lodash.js"></script> -->
-  <!-- <script src="lodash.js"></script> -->
-	<script src='https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.68/Tone.js'></script>
-
-  <!-- <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/css/calcite-web.min.css"> -->
-  <!-- <script src="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.2.5/js/calcite-web.min.js"></script> -->
-
-  <!-- calcite components -->
-  <script
-  type="module"
-  src="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.esm.js"
-></script>
-<script
-  nomodule=""
-  src="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.js"
-></script>
-<link
-  rel="stylesheet"
-  type="text/css"
-  href="https://unpkg.com/@esri/calcite-components@1.0.0-beta.33/dist/calcite/calcite.css"
-/>
+	<script src='https://unpkg.com/tone@14.7.77/build/Tone.js'></script>
 
   <!-- 3rd party libraries -->
   <script src="https://d3js.org/d3.v4.js"></script>
   <!-- <script src="https://cdn.rawgit.com/fabid/d3-rectbin/master/rectbin.js"></script> -->
   <script src="rectbin.js"></script> <!-- local for debugging -->
-  <script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/autocomplete.js/0/autocomplete.min.js"></script>
 
   <script type="module" src="sonar.mjs"></script>
 </head>
@@ -103,6 +81,7 @@
   <div id="keyboardModeMenu" tabindex="0" class="sidebar">
     
     <div class="sidebarItems">
+      <h1>Menu</h1>
       <div>
         <input type="checkbox" tabindex="0" id="featureSelectionModeButton" aria-labelledby="featureSelectionModeLabel"></input>
         <label id="featureSelectionModeLabel">Feature selection</label>
@@ -144,7 +123,6 @@
   <div id="alertDivWrapper">
     Speech announcement
     <div id="alertDiv" role="alert">
-      Top level.
     </div>
   </div>
   <div id="helpDivWrapper">

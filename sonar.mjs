@@ -14,8 +14,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   Map,
   MapView,
   FeatureLayer,
-  generateHistogram,
-  HistogramRangeSlider,
 
   uniqueValues,
   Legend,
@@ -34,8 +32,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/Map",
   "esri/views/MapView",
   "esri/layers/FeatureLayer",
-  "esri/smartMapping/statistics/histogram",
-  "esri/widgets/HistogramRangeSlider",
 
   "esri/smartMapping/statistics/uniqueValues",
   "esri/widgets/Legend",
@@ -194,7 +190,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
 
     // put vars on window for debugging
-    Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ generateHistogram, HistogramRangeSlider, uniqueValues, keyboardModeState, webMercatorUtils });
+    Object.assign(window, { state, map, getDatasetField, getDatasetFieldUniqueValues, /*histogram, histogramValues,*/ uniqueValues, keyboardModeState, webMercatorUtils });
 
     // Dataset info
     // document.querySelector('#datasetName').innerHTML = dataset.attributes.name;
@@ -1433,7 +1429,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     document.getElementById("modeStatus").innerHTML = msg;
     statusAlert(msg + " mode.")
   }
-  function statusAlert(msg) { document.getElementById("alertDiv").innerHTML = msg; }
+  function statusAlert(msg) { document.getElementById("alertDiv").innerText = `"${msg}"`; }
 
 
   // TONE.JS SETUP
