@@ -16,11 +16,10 @@ body,
   margin: 0;
   flex: auto;
   overflow: hidden;
+  position: relative;
 }
 
-#sidebar {
-  min-width: 340px;
-  max-width: 400px;
+.sidebar {
   height: 100%;
   padding: 20px;
   /* margin: 0px 12px; */
@@ -313,15 +312,7 @@ body,
   /* margin-left: 20px; */
 }
 
-#keyboardModeMenu {
-  outline: 2px solid gray;
-  background-color: #ddd;
-  padding: 4px;
-  margin: 10px;
-  position: absolute;
-}
-
-#keyboardModeMenu > button {
+.sidebar > button {
   height: 15px;
 }
 
@@ -347,4 +338,124 @@ body,
   margin: 50px;
   border: 2px solid black;
   padding: 20px;
+  z-index: 2;
+}
+
+/* loader stolen from dc.esri.com */
+#base-loader {
+  z-index: 1;
+  display:block;
+  fill:none;
+  stroke:#009af2;
+  animation:loader-color-shift 2s alternate-reverse infinite linear;
+  height:54px;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+#base-loader svg.loader-square {
+  position:absolute;
+  left:0;
+  right:0;
+  margin-left:auto;
+  margin-right:auto;
+  width:54px;
+  height:54px;
+  stroke-width:6px;
+  stroke-dashoffset:0;
+  fill:none
+}
+#base-loader svg.loader-square.loader-square-1 {
+  stroke-dasharray:50% 350%;
+  animation:loader-clockwise 2s infinite linear
+}
+#base-loader svg.loader-square.loader-square-2 {
+  stroke-dasharray:100% 225% 50% 25%;
+  animation:loader-clockwise 1s infinite linear
+}
+#base-loader svg.loader-square.loader-square-3 {
+  stroke-dasharray:50% 50% 75% 225%;
+  animation:loader-clockwise 1.85s infinite linear
+}
+@keyframes loader-color-shift {
+  0% {
+  stroke:#009af2
+}100% {
+  stroke:#00619b
+}
+}
+@keyframes loader-clockwise {
+  0% {
+  stroke-dashoffset:0
+}100% {
+  stroke-dashoffset:-400%
+}
+}
+#base-loader .loader-bars {
+  display:none
+}
+@media screen and (-ms-high-contrast:active),(-ms-high-contrast:none) {
+  #base-loader svg,.active#base-loader svg {
+  display:none
+}
+#base-loader .loader-bars,.active#base-loader .loader-bars {
+  display:block
+}
+
+}
+@supports (-ms-ime-align:auto) {
+  #base-loader svg,.active#base-loader svg {
+  display:none
+}
+#base-loader .loader-bars,.active#base-loader .loader-bars {
+  display:block
+}
+
+}
+#base-loader .loader-bars,#base-loader .loader-bars:after,#base-loader .loader-bars:before {
+  background:#0079c1;
+  animation:load .8s infinite ease-in-out;
+  width:8.5px;
+  height:20px
+}
+#base-loader .loader-bars:after,#base-loader .loader-bars:before {
+  position:absolute;
+  top:0;
+  content:""
+}
+#base-loader .loader-bars {
+  text-indent:-9999em;
+  margin:auto;
+  position:absolute;
+  right:calc(50% - 4.25px);
+  animation-delay:.16s
+}
+#base-loader .loader-bars:before {
+  left:-12.5px
+}
+#base-loader .loader-bars:after {
+  left:12.5px;
+  animation-delay:.32s
+}
+@keyframes load {
+  0%,100%,80% {
+  opacity:.75;
+  box-shadow:0 0 #0079c1;
+  height:20px
+}
+40% {
+  opacity:1;
+  box-shadow:0 -5px #0079c1;
+  height:25px
+}
+}
+
+#loaderWrapper {
+  position: absolute;
+  width: 54px;
+  right: 50%;
+  height: 100%;
+  z-index: 2;
 }

@@ -84,7 +84,6 @@
 
     </div>
   </div> -->
-  <div id="viewDiv" tabindex="0" aria-label="Map"></div>
   <!-- <div id="zoomToData" class="esri-widget">
     <label>
       <calcite-checkbox checked="true"></calcite-checkbox>Zoom to data
@@ -100,23 +99,34 @@
       <calcite-checkbox checked="false"></calcite-checkbox>Force labels
     </label>
   </div> -->
-
-  <div id="keyboardModeMenu" tabindex="0">
-
-    <input type="checkbox" tabindex="0" id="featureSelectionModeButton" aria-labelledby="featureSelectionModeLabel"></input>
-    <label id="featureSelectionModeLabel">Feature selection</label>
-    <input type="checkbox" tabindex="0" id="featureModeButton" aria-labelledby="featureModeLabel"></input>
-    <label id="featureModeLabel">Inspect Feature</label>
-    <input type="checkbox" tabindex="0" id="verboseCheckbox" aria-labelledby="verboseLabel"></input>
-    <label id="verboseLabel">Verbose</label>
-    <input type="checkbox" tabindex="0" id="sonarModeCheckbox" aria-labelledby="sonarModeLabel"></input>
-    <label id="sonarModeLabel">Sonar</label>
-    <input type="checkbox" tabindex="0" id="helpButton" aria-labelledby="helpButtonLabel"></input>
-    <label id="helpButtonLabel">Help</label>
-
+  
+  <div id="keyboardModeMenu" tabindex="0" class="sidebar">
+    
+    <div class="sidebarItems">
+      <div>
+        <input type="checkbox" tabindex="0" id="featureSelectionModeButton" aria-labelledby="featureSelectionModeLabel"></input>
+        <label id="featureSelectionModeLabel">Feature selection</label>
+      </div>
+      <div>
+        <input type="checkbox" tabindex="0" id="featureModeButton" aria-labelledby="featureModeLabel"></input>
+        <label id="featureModeLabel">Inspect Feature</label>
+      </div>
+      <div>
+        <input type="checkbox" tabindex="0" id="verboseCheckbox" aria-labelledby="verboseLabel"></input>
+        <label id="verboseLabel">Verbose</label>
+      </div>
+      <div>
+        <input type="checkbox" tabindex="0" id="sonarModeCheckbox" aria-labelledby="sonarModeLabel"></input>
+        <label id="sonarModeLabel">Sonar</label>
+      </div>
+      <div>
+        <input type="checkbox" tabindex="0" id="helpButton" aria-labelledby="helpButtonLabel"></input>
+        <label id="helpButtonLabel">Help</label>
+      </div>
+    </div>
   </div>
-
-
+  
+  
   <div id="status">
     <div>
       Focus:
@@ -173,6 +183,24 @@
 
     </table>
   </div>
+
+
+  <div id="viewDiv" tabindex="0" aria-label="Map">
+    <div id="loaderWrapper">
+      <div id="base-loader" aria-label="loading">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" class="loader-square loader-square-1">
+          <rect width="56" height="56"></rect>
+        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" class="loader-square loader-square-2">
+          <rect width="56" height="56"></rect>
+        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" class="loader-square loader-square-3">
+          <rect width="56" height="56"></rect>
+        </svg>
+        <div class="loader-bars"></div>
+      </div>
+      </div>    
+    </div>
 
 </body>
 </html>

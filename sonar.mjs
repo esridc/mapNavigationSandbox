@@ -143,6 +143,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         fillOpacity: 0.6
       }
     });
+
+    // spinner
+    // only show on first page load
+    let loadedOnce = false;
+    view.watch('updating', function(evt){
+      if (loadedOnce) return false;
+      document.getElementById('base-loader').style.visibility = evt === true ? 'visible' : 'hidden';
+      loadedOnce = true;
+    });
+
     state.lastPosition =  { x: view.extent.center.x,
                             y: view.extent.center.y,
                             z: view.zoom
@@ -965,7 +975,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     if (value) { // keyboard mode on
       // show keyboard mode menu
       keyboardMenu.classList.remove("hidden");
-      state.view.ui.add('keyboardModeMenu', 'top-left');
       statusAlert('KeyboardMode on.');
       document.activeElement.blur();
       keyboardMenu.focus();
