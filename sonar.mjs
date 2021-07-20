@@ -22,17 +22,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/Map",
   "esri/views/MapView",
   "esri/layers/FeatureLayer",
-
   "esri/request",
   "esri/geometry/support/webMercatorUtils",
   "esri/core/watchUtils",
   "esri/geometry/Point",
 ]);
-
-  // data urls
-  var datasets = {
-    'Citclops Water': "8581a7460e144ae09ad25d47f8e82af8_0",
-  }
 
   // track state
   var state = {};
@@ -136,26 +130,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // reset state
     initState();
     var dataset, layer;
-    if (args.url) { // dataset url provided directly
-      const datasetURL = args.url;
-      try {
-        // dataset = (await fetch(datasetURL).then(r => r.json()));
-        dataset = {attributes: {url: args.url}}
-      } catch(e) { console.log('failed to load dataset from url:', args.url, e); }
-    } else if (args.datasetId) { // dataset id provided directly
-      // https://opendataqa.arcgis.com/api/v3/datasets/97a641ac39904f349fb5fc25b94207f6
-      const datasetURL = `https://opendata${args.env === 'qa' ? 'qa' : ''}.arcgis.com/api/v3/datasets/${args.datasetId}`;
-      try {
-        dataset = (await fetch(datasetURL).then(r => r.json())).data;
-      } catch(e) { console.log('failed to load dataset from id', args.datasetId, e); }
-    } else if (args.datasetSlug) { // dataset slug provided as alternate
-      // https://opendata.arcgis.com/api/v3/datasets?filter%5Bslug%5D=kingcounty%3A%3Aphoto-centers-for-2010-king-county-orthoimagery-project-ortho-image10-point
-      const filter = `${encodeURIComponent('filter[slug]')}=${encodeURIComponent(args.datasetSlug)}`
-      const datasetURL = `https://opendata${args.env === 'qa' ? 'qa' : ''}.arcgis.com/api/v3/datasets?${filter}`;
-      try {
-        dataset = (await fetch(datasetURL).then(r => r.json())).data[0];
-      } catch(e) { console.log('failed to load dataset from slug', args.datasetSlug, e); }
-    }
+    // load dataset metadata locally – this is much faster than hitting the arcgis servers
+    const datasetURL = '8581a7460e144ae09ad25d47f8e82af8_0.json';
+    try {
+      // dataset: https://services8.arcgis.com/iSk8OjfdllV32jzx/arcgis/rest/services/Citclops_Export_EC2020/FeatureServer
+      dataset = (await fetch(datasetURL).then(r => r.json())).data;
+    } catch(e) { console.log('failed to load dataset', e); }
     // initialize a new layer
     const url = dataset.attributes.url;
     layer = new FeatureLayer({
