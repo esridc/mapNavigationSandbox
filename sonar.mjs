@@ -28,9 +28,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   "esri/geometry/Point",
 ]);
 
-  // track state
+  // track state + global settings
   var state = {};
   var keyboardModeState = {};
+  var globals = {};
   function initState() {
     state = {
       dataset: null,
@@ -52,6 +53,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       verbose: null,
       lastPlace: null,
     };
+    globals = {
+      numPitches: 25,
+      numNotes: 30,
+      notes: null,
+      singlePart: null,
+    }
   }
 
   var highlight = null;
@@ -89,7 +96,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let loadedOnce = false;
     view.watch('updating', function(evt){
       if (loadedOnce) return false;
-      if (!evt) document.getElementById('base-loader').style.display = 'none';
+      // if (!evt) document.getElementById('base-loader').style.display = 'none';
       loadedOnce = true;
     });
 
@@ -114,7 +121,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
 
     // put vars on window for debugging
-    Object.assign(window, { state, map, /*histogram, histogramValues,*/ keyboardModeState, webMercatorUtils });
+    Object.assign(window, { state, map, keyboardModeState, globals });
 
     // Dataset info
     // document.querySelector('#datasetName').innerHTML = dataset.attributes.name;
@@ -135,7 +142,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     const datasetURL = '8581a7460e144ae09ad25d47f8e82af8_0.json';
     try {
       // dataset: https://services8.arcgis.com/iSk8OjfdllV32jzx/arcgis/rest/services/Citclops_Export_EC2020/FeatureServer
-      dataset = (await fetch(datasetURL).then(r => r.json())).data;
+      dataset = (await fetch(datasetURL).then(r => {
+        console.log('LOADED');
+        document.getElementById('base-loader').style.display = 'none';
+        return r.json();
+      })).data;
     } catch(e) { console.log('failed to load dataset', e); }
     // initialize a new layer
     const url = dataset.attributes.url;
@@ -161,7 +172,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // keyboard mode on by default (was previously only active if you tabbed into the map)
     setKeyboardMode(true);
     // show help every time the page loads
-    setMode('help')
+    // setMode('help')
   }
 
   //
@@ -245,7 +256,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     });
     document.querySelector('#sonarModeCheckbox').addEventListener('change', (e) => {
       // toggle sound
-      if (e.currentTarget.checked) sonarSetup();
+      if (e.currentTarget.checked) {
+        sonarSetup();
+        ping();
+      }
       else Tone.Transport.stop()
     });
     document.querySelector('#helpButton').addEventListener('click', (e) => {
@@ -285,7 +299,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         view = await drawMap();
       }
 
-      updateFeatures();
+      // updateFeatures();
 
       // keyboard mode always on for now
     // } else if (!value) { // keyboard mode off
@@ -309,6 +323,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     query.spatialRelationship = "contains"; // this might work better?
 
     var features = (await state.layer.queryFeatures(query)).features;
+    // sort so tab order goes from west to east onscreen
     features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
     keyboardModeState.features = features;
 
@@ -519,9 +534,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var {view, layer} = state;
     var {feature, features} = keyboardModeState;
     if (!features) {
-      // 
-      debugger
-      return false;
+      await updateFeatures();
+      var {features} = keyboardModeState;
     }
     feature = features[index];
     if (!feature) {
@@ -559,25 +573,22 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       });
       statusAlert('Popup: '+content.meta);
 
+      if (document.getElementById('sonarModeCheckbox').checked && !keyboardModeState.sonar) {
+        sonarSetup();
+      }
+
       if (keyboardModeState.sonar) {
         let pitch = getPitch(feature);
         part.clear();
         part.add({time: 0, note: pitch, velocity: equalLoudnessContour(pitch) * .8});
 
-        // set decay with a sigmoid function
-        // TODO: DRY this out
-        let z = state.view.zoom;
-        let maxDecay = 3; // seconds
-        let a = .8; // slowness of dropoff
-        let decay = (2 * maxDecay * (a ** z)/(a ** z + 1));
-        reverb.set({decay: ""+decay}); // needs to be a string, for reasons
 
+        setDecay()
         // restart the playback timeline
         if (Tone.Transport.state == "started") {
           Tone.Transport.stop();
         }
         Tone.Transport.start();
-
       }
     });
   }
@@ -701,11 +712,10 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   function triggerPing() {
     // do a sonar ping
-    if (!keyboardModeState.sonar) {
-      sonarSetup()
-    } else {
-      ping();
-    }    
+    if (document.getElementById('sonarModeCheckbox').checked && !keyboardModeState.sonar) {
+      sonarSetup();
+    }
+    ping();
   }
   window.triggerPing = triggerPing;
 
@@ -744,6 +754,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   // make a pentatonic scale - root is 1, other notes are ratios relative to 1
   let pentatonic = [1, 1.125, 1.265625, 1.5, 1.6875];
+  // chromatic scale, unused because it sounds like hammering a piano
   let chromatic = [1, 1.059463, 1.122462, 1.189207, 1.259921, 1.334839, 1.414213, 1.498307, 1.587401, 1.681792, 1.781797, 1.887748];
 
   // return a pentatonic scale of n values
@@ -784,27 +795,24 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   });
 
   // create a new sequence, which is automatically connected to Tone.Transport
-  var part = new Tone.Part((time, value) => {
+  globals.part = new Tone.Part((time, value) => {
     synth.triggerAttackRelease(value.note, "16n", time, value.velocity);
   });
-  part.start(0); // set the starting time of the part
-
-  function rand(x) {
-    return Math.floor(Math.random()*x);
-  }
+  globals.part.start(0); // set the starting time of the part
 
   // SCORE
 
   // populate part with notes
-  function getNotes(part) {
+  async function getNotes() {
     // clear any existing notes
-    part.clear();
+    globals.part.clear();
     // get score
     var notes = arrangeFeatures();
     // add notes to part
     for (let x = 0; x < notes.length; x++) {
-      part.add(notes[x]);
+      globals.part.add(notes[x]);
     }
+    globals.notes = notes;
   }
 
   function sonarSetup() {
@@ -812,21 +820,25 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     keyboardModeState.sonar = true;
     // activate Tone.js
     Tone.start();
-    // perform an initial sonar ping
-    ping();
   }
 
-  function ping() {
-    // get notes
-    getNotes(part);
-
+  function setDecay() {
     // set decay with a sigmoid function based on zoom level
     let z = state.view.zoom;
     let maxDecay = 3; // seconds
     let a = .8; // slowness of dropoff
     let decay = (2 * maxDecay * (a ** z)/(a ** z + 1));
     reverb.set({decay: ""+decay}); // needs to be a string, for reasons
+  }
 
+  // play a whole-screen sonar ping
+  function ping() {
+    // console.trace('ping');
+    // get notes
+    getNotes();
+    setDecay();
+    if (globals.singleNote) globals.singleNote.mute = true;
+    globals.part.mute = false;
     // restart the playback timeline
     if (Tone.Transport.state == "started") {
       Tone.Transport.stop();
@@ -837,10 +849,13 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   function arrangeFeatures() {
     console.log('\n\n---\n\n')
 
+    if (!keyboardModeState.features) {
+      console.error('no features')
+      return false;
+    }
+
     let { view } = state;
-    let features = keyboardModeState.features;
-    if (view.graphics) view.graphics.removeAll();
-    // features.sort((a, b) => (a.geometry.longitude > b.geometry.longitude) ? 1 : -1);
+    let { features } = keyboardModeState;
 
     //
     // GET PITCHES
@@ -895,7 +910,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     var xRange = xMax - xMin;
     var yRange = yMax - yMin;
     
-    let notes = 30; // maximum number of notes, also number of time divisions
+    let notes = globals.numNotes; // maximum number of notes, also number of time divisions
 
     // set the lowest note in the scale
     // let root = 130.813 // 130hz = c3
@@ -903,7 +918,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     // let root = 65.4 // c2
     // let root = 32.70 // c1
 
-    let pitches = 25; // maximum number of pitches
+    let pitches = globals.numPitches; // maximum number of pitches
 
     let scale = getPentatonic(pitches);
     var score = [];
@@ -922,7 +937,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     console.log('extents:', xExtent, yExtent)
 
     // bin the positions
-    var bins = rectbin(positions, xExtent, yExtent);
+    try {
+      var bins = rectbin(positions, xExtent, yExtent);
+    }catch(e){
+      debugger
+    }
+
 
 
 
