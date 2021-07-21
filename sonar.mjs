@@ -578,10 +578,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       }
 
       if (keyboardModeState.sonar) {
-        let pitch = getPitch(feature);
-        part.clear();
-        part.add({time: 0, note: pitch, velocity: equalLoudnessContour(pitch) * .8});
-
+        playSingleNote(feature);
 
         setDecay()
         // restart the playback timeline
@@ -1050,27 +1047,52 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
   // get the pitch of a single feature
   // TODO: DRY this out w/arrangeFeatures()
-  function getPitch(feature) {
-    let position = webMercatorUtils.geographicToWebMercator(new Point([feature.geometry.longitude, feature.geometry.latitude]));
+  async function playSingleNote(feature) {
+    console.log('playSingleNote at index', keyboardModeState.featureIndex);
+    if (!globals.notes) {
+      await getNotes();
+    }
+    setDecay();
+    Tone.start();
 
-    let extent = state.view.extent;
-    var oldLatMin = extent.ymin;
-    var oldLatMax = extent.ymax;
+    // clear any existing notes
+    if (globals.singleNote) {
+      globals.singleNote.clear()
+    }
+    globals.singleNote = new Tone.Part((time, value) => {
+      synth.triggerAttackRelease(value.note, "16n", time, value.velocity);
+    });
+    globals.singleNote.start(0); // set the starting time of the part
 
-    var newLatMin = 0;
-    let pitches = 26;
-    var newLatMax = pitches - 1; // if using a scale
+    
+    let pitch = globals.notes[keyboardModeState.featureIndex].note;
+    globals.singleNote.add({time: 0, note: pitch, velocity: equalLoudnessContour(pitch) * .8});
 
-    let newLatVal = rescale(position.y, oldLatMin, oldLatMax, newLatMin, newLatMax);
-    let root = 65.4 // the lowest note in the scale in hz, 65.4 = c2
-    let scale = getPentatonic(pitches);
-    let val = root * scale[Math.floor(newLatVal)] // use a scale
-    return val;
-  }
+    globals.singleNote.mute = false;
+    globals.part.mute = true;
 
-  // scale a value from the range oldMin-oldMax to the range newMin-newMax
-  function rescale(val, oldMin, oldMax, newMin, newMax) {
-    return (((val - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
+    // restart the playback timeline
+    if (Tone.Transport.state == "started") {
+      Tone.Transport.stop();
+    }
+    Tone.Transport.start();
+    
+    
+    // let position = webMercatorUtils.geographicToWebMercator(new Point([feature.geometry.longitude, feature.geometry.latitude]));
+
+    // let extent = state.view.extent;
+    // var oldLatMin = extent.ymin;
+    // var oldLatMax = extent.ymax;
+
+    // var newLatMin = 0;
+    // let pitches = 26;
+    // var newLatMax = pitches - 1; // if using a scale
+
+    // let newLatVal = rescale(position.y, oldLatMin, oldLatMax, newLatMin, newLatMax);
+    // let root = 65.4 // the lowest note in the scale in hz, 65.4 = c2
+    // let scale = getPentatonic(pitches);
+    // let val = root * scale[Math.floor(newLatVal)] // use a scale
+    // return val;
   }
 
   function announceRegion() {
