@@ -56,8 +56,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     globals = {
       numPitches: 25,
       numNotes: 30,
-      notes: null,
-      singlePart: null,
     }
   }
 
@@ -579,9 +577,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
       if (keyboardModeState.sonar) {
         let pitch = getPitch(feature);
-        part.clear();
-        part.add({time: 0, note: pitch, velocity: equalLoudnessContour(pitch) * .8});
-
+        globals.part.clear();
+        globals.part.add({time: 0, note: pitch, velocity: equalLoudnessContour(pitch) * .8});
 
         setDecay()
         // restart the playback timeline
@@ -812,7 +809,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     for (let x = 0; x < notes.length; x++) {
       globals.part.add(notes[x]);
     }
-    globals.notes = notes;
   }
 
   function sonarSetup() {
