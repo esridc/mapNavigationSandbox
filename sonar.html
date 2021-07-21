@@ -28,7 +28,7 @@
 </head>
 
 <body>
-  <div id="header"><div class="title">Esri Sonar Map</div>
+  <div id="header"><div class="title">Sonar Map</div>
     <div class="subtitle"><a href="https://dc.esri.com/">Esri R&D Center DC</a></div>
   </div>
 
@@ -50,12 +50,15 @@
         <label id="verboseLabel">Verbose</label>
       </div>
       <div>
-        <input type="checkbox" tabindex="0" id="sonarModeCheckbox" aria-labelledby="sonarModeLabel"></input>
+        <input type="checkbox" tabindex="0" checked="true" id="sonarModeCheckbox" aria-labelledby="sonarModeLabel"></input>
         <label id="sonarModeLabel">Sonar</label>
       </div>
       <div>
         <input type="checkbox" tabindex="0" id="helpButton" aria-labelledby="helpButtonLabel"></input>
         <label id="helpButtonLabel">Help</label>
+      </div>
+      <div>
+        <button tabindex="0" id="pingButton" onclick="triggerPing()">PING</button>
       </div>
     </div>
   </div>
@@ -83,7 +86,8 @@
   <div id="helpDivWrapper">
     <div id="helpDiv" role="alert">
       <b>Sonar Map</b>
-      <p>Press escape to close this message.</p>
+      <p>Press escape to close this message and go to the main menu.</p>
+      <p>Note: This web page plays sounds! Please adjust your volume. To disable the sounds, uncheck the "Sonar" button.</p>
       <p>This map of the world uses non-visual navigation. It shows 2000 global features from a water quality database.</p>
 
       <p>The arrow keys will move the map. The "z" and "x" keys will zoom in and out. Zoom 0 shows the whole world, zoom 6 is roughly the size of a country, zoom 12 is city level, and zoom 16 shows individual streets. The "c" key will center and zoom in on a selected feature.</p>

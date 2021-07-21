@@ -40,7 +40,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       legend: null,
       categoricalMax: 7,
       fieldName: null,
-      lastPosition: null,
+      lastPosition: {x: 0, y: 0, z: 0},
     }
     keyboardModeState = {
       features: null,
@@ -81,7 +81,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       highlightOptions: {
         color: [0, 255, 255],
         fillOpacity: 0.6
-      }
+      },
     });
 
     // spinner
@@ -93,10 +93,11 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       loadedOnce = true;
     });
 
-    state.lastPosition =  { x: view.extent.center.x,
-                            y: view.extent.center.y,
-                            z: view.zoom
-                          }
+    view.goTo({
+      center: [-5, 40],
+      zoom: 5,
+    })
+
     // update features when the view is moved
     watchUtils.whenTrue(view, "stationary", function() {
       let { lastPosition } = state;
@@ -145,8 +146,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       maxScale: 0,
     });
     layer.popupTemplate = {
-      title: "Keyboard Navigation ",
-      content: `Click "Feature selection" in the menu above, then use "Tab" and "Shift-Tab" to move forward and back, and "Enter" and "esc" to move into and out of features!`
+      title: "To use this map:",
+      content: `Click "Feature selection" in the menu, then use "Tab" and "Shift-Tab" to move forward and back, and "Enter" and "esc" to move into and out of features. Check "Verbose" for more detailed announcements, "Sonar" for musical feedback, and "Help" for more information.`
     }
     layer.onclick = null;
 
@@ -155,10 +156,12 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // draw map once before autoStyling to initialize layerView object
     state.view = await drawMap();
-    autoStyle({});  // guess at a style for this field
+    setStyles({});  // style the map
 
+    // keyboard mode on by default (was previously only active if you tabbed into the map)
     setKeyboardMode(true);
-    // setMode('sound')
+    // show help every time the page loads
+    setMode('help')
   }
 
   //
@@ -166,7 +169,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   //
 
   // set symbology
-  async function autoStyle () {
+  async function setStyles () {
     var {layer, view} = state;
 
     // SET COLORS
@@ -196,7 +199,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
     // update state
     state = {...state, layer, view, renderer}
-  } // end autoStyle
+  } // end setStyles
 
 
   //
@@ -256,7 +259,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   function setMode(mode) {
-    console.log('setMode:', mode);
     keyboardModeState.mode = mode;
     document.querySelector('#featureSelectionModeButton').checked = mode == "featureSelection" ? true : false;
     document.querySelector('#featureModeButton').checked = mode == "feature" ? true : false;
@@ -277,8 +279,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       // document.activeElement.blur();
       // keyboardMenu.focus();
 
-      // show help every time
-      setMode("help")
 
       window.addEventListener('keydown', keyboardModeHandler);
       if (!view) {
@@ -337,7 +337,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     if (mode == "menu") menuHandler(e);
     else if (mode == "featureSelection") featureSelectionHandler(e);
     else if (mode == "feature") featureHandler(e);
-    else if (mode == "sound") soundHandler(e);
     else if (mode == "help") helpHandler(e);
   }
 
@@ -396,19 +395,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
   }
 
   async function activateFeatureMode() {
-    console.log('activateFeatureMode');
     var { feature, featureIndex } = keyboardModeState;
     if (feature) {
-      console.log('feature');
-      setMode("feature")
+        setMode("feature")
       statusAlert(`Feature #${featureIndex + 1} selected.`)
       if (!state.view.popup.visible) {
         state.view.popup.watch('content', (e) => {
           if (document.querySelector("#popup-content>#placeLabel") != null) {
             if (document.querySelector("#popup-content>#placeLabel").innerText != "") {
-            console.log('placeLabel?', document.querySelector("#popup-content>#placeLabel"));
-            document.querySelector("#popup-content>#placeLabel").focus();
-          }
+              document.querySelector("#popup-content>#placeLabel").focus(); // currently nonfunctional, hmm
+            }
           }
         })  
         state.view.popup.open();
@@ -424,9 +420,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       document.getElementById('keyboardModeMenu').focus();
       e.preventDefault();
     }
-  }
-
-  function soundHandler(e) {
   }
 
   function helpHandler(e) {
@@ -489,7 +482,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       document.getElementById('placeLabel').innerHTML = geoJson.address.LongLabel;
     }).catch((err) => {
       if (err.name === 'AbortError') {
-        console.log('Request aborted');
+        // console.log('Request aborted');
       } else {
         console.error('Error encountered', err);
       }
@@ -597,24 +590,17 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
     let {mode, featureIndex} = keyboardModeState;
     keyStatus(nameKeyCombo(e));
 
-    // activate keyboardMode when tabbing into map
+    // keyboardMode active by default
     if (!mode) {
-      if (e.key == "Tab") {
-        if (document.activeElement == document.getElementById('viewDiv')) {
-          console.log('activate')
+      setKeyboardMode(true);
+      setMode("menu")
 
-          setKeyboardMode(true);
-
-          if (!state.view) {
-            state.view = await drawMap();
-          }
-        } else {
-          // e.preventDefault();
-        }
+      if (!state.view) {
+        state.view = await drawMap();
       }
-    } else {
+    }
+    
       // global arrow key navigation – replace default
-
       let weight = .85; // weighted average – move this percent from the center to the edge
 
       if (e.key == 'ArrowRight') {
@@ -691,13 +677,7 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
         });
 
       } else if (e.key == 's') {
-        // do a sonar ping
-        if (!keyboardModeState.sonar) {
-          sonarSetup()
-        } else {
-          ping();
-        }
-
+        triggerPing();
       } else if (e.key in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
         // do a sonar ping
         if (keyboardModeState.mode) { // if keyboardModeState has been set
@@ -711,7 +691,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
 
 
       // keyboardModeHandler(e);
-    }
     // deselect feature when it leaves the viewport
 
     // fix browser reloading when tabbing to the page when map has focus
@@ -719,6 +698,16 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       location.reload(true);
     }
   });
+
+  function triggerPing() {
+    // do a sonar ping
+    if (!keyboardModeState.sonar) {
+      sonarSetup()
+    } else {
+      ping();
+    }    
+  }
+  window.triggerPing = triggerPing;
 
   var keyupListener = window.addEventListener('keyup', e => {
     let el = document.activeElement;
@@ -1075,9 +1064,8 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       signal,
       responseType: "json",
     }).then(function(response){
-      console.log('response?')
       var geoJson = response.data;
-      console.log('address:', geoJson.address)
+      console.log(geoJson.address)
       // track this in state so the popup knows whether to cancel any outstanding requests
       let z = state.view.zoom;
       let placeName = '';
@@ -1085,7 +1073,6 @@ import { loadModules, setDefaultOptions } from 'https://unpkg.com/esri-loader/di
       else if (z < 14) placeName = geoJson.address.Subregion;
       else if (z < 20) placeName = geoJson.address.LongLabel;
       if (placeName == '') placeName = geoJson.address.ShortLabel;
-      console.log('region:', placeName)
       if (placeName != keyboardModeState.lastPlace) {
         statusAlert(placeName);
         keyboardModeState.lastPlace = placeName;
